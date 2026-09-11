@@ -1,26 +1,155 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* Ink — charcoal, primary text & header/footer */
+  --color-ink-50: #f4f5f5;
+  --color-ink-100: #e4e6e6;
+  --color-ink-200: #c7cbcb;
+  --color-ink-300: #a1a7a8;
+  --color-ink-400: #767f80;
+  --color-ink-500: #5a6364;
+  --color-ink-600: #474f50;
+  --color-ink-700: #3a4041;
+  --color-ink-800: #2d3233;
+  --color-ink-900: #23272a;
+  --color-ink-950: #16191b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Amber — sun-gold, primary accent / CTAs */
+  --color-amber-50: #fdf7ec;
+  --color-amber-100: #faebc9;
+  --color-amber-200: #f5d693;
+  --color-amber-300: #f0bd5d;
+  --color-amber-400: #eda43a;
+  --color-amber-500: #e28b23;
+  --color-amber-600: #c76c1b;
+  --color-amber-700: #a5501a;
+  --color-amber-800: #863f1c;
+  --color-amber-900: #6f351b;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Cyan — sea/sky, secondary accent used sparingly */
+  --color-cyan-50: #eefcfc;
+  --color-cyan-100: #d3f6f7;
+  --color-cyan-200: #a9ecef;
+  --color-cyan-300: #78dce3;
+  --color-cyan-400: #46c2cd;
+  --color-cyan-500: #2aa3b0;
+  --color-cyan-600: #227f8f;
+  --color-cyan-700: #206675;
+  --color-cyan-800: #205260;
+  --color-cyan-900: #1e4551;
+
+  /* Sand / cream — warm neutral backgrounds */
+  --color-sand-50: #fdfbf7;
+  --color-sand-100: #faf5eb;
+  --color-sand-200: #f4ead6;
+  --color-sand-300: #ecdab8;
+  --color-sand-400: #dfc08c;
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+
+  --shadow-soft: 0 2px 8px 0 rgb(35 39 42 / 0.06), 0 12px 32px -8px rgb(35 39 42 / 0.12);
+  --shadow-card: 0 1px 2px 0 rgb(35 39 42 / 0.06), 0 8px 24px -6px rgb(35 39 42 / 0.10);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-sand-50);
+  color: var(--color-ink-800);
+  font-family: var(--font-sans);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.text-shadow-hero {
+  text-shadow:
+    0 1px 3px rgb(0 0 0 / 0.85),
+    0 8px 28px rgb(0 0 0 / 0.55);
+}
+
+/* Consistent, visible keyboard focus ring across the site — buttons and
+   links otherwise fall back to the browser default, which reads poorly
+   against the dark sections and the amber CTA. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-amber-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 200;
+  background: var(--color-ink-900);
+  color: var(--color-sand-50);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Brand-styled Leaflet chrome — the property map's zoom control and
+   marker popups, restyled away from Leaflet's default boxy gray look. */
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.leaflet-control-zoom a {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  font-size: 18px !important;
+  background: var(--color-sand-50) !important;
+  color: var(--color-ink-800) !important;
+  border: none !important;
+}
+
+.leaflet-control-zoom a:first-child {
+  border-bottom: 1px solid var(--color-ink-100) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--color-sand-100) !important;
+  color: var(--color-amber-600) !important;
+}
+
+.property-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 1rem !important;
+  box-shadow: var(--shadow-soft) !important;
+  overflow: hidden;
+}
+
+.property-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+}
+
+.property-popup .leaflet-popup-tip {
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.property-popup .leaflet-popup-close-button {
+  top: 6px !important;
+  right: 6px !important;
+  color: var(--color-sand-50) !important;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
 }
