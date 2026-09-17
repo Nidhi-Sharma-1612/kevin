@@ -1,8 +1,8 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Languages } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Languages, Loader2 } from "lucide-react";
 
 type TranslateElementOptions = {
   pageLanguage: string;
@@ -137,8 +137,18 @@ function clearGoogTransCookie() {
   document.cookie = `googtrans=; path=/; domain=.${host}; ${expired}`;
 }
 
+// Switching languages does a full reload (the widget's own translation
+// pass needs a fresh DOM to scan), which otherwise means a jarring flash of
+// the outgoing language's page before the new one is ready. This flag
+// survives the reload (a cookie/URL param would too, but this never needs
+// to reach the server) and drives a full-screen "Translating…" overlay
+// that covers that flash, cleared once the target language is actually
+// showing — see the SwitchOverlay component below.
+const SWITCHING_KEY = "gt-switching";
+
 function selectLanguage(code: string) {
   clearGoogTransCookie();
+  sessionStorage.setItem(SWITCHING_KEY, code);
   // English is the page's own source language — leaving the cookie unset
   // is the reliable way back to it. Setting "/en/en" (source=target) still
   // leaves a cookie for Google's widget to find on load, and in practice
@@ -148,6 +158,87 @@ function selectLanguage(code: string) {
     document.cookie = `googtrans=/en/${code}; path=/`;
   }
   window.location.reload();
+}
+
+// Safety net if Google's script is slow, blocked, or the translated-*
+// class it adds ever changes shape — the overlay must never get stuck.
+const SWITCH_TIMEOUT_MS = 4000;
+
+function SwitchOverlay() {
+  // Must start false: the server has no sessionStorage to read, so it
+  // always renders "not visible" — starting from anything else here is a
+  // hydration mismatch (React expects the client's first render to match
+  // the server's exactly), not just a cosmetic issue. useLayoutEffect runs
+  // synchronously after that first render commits but before the browser
+  // paints, so flipping it there still shows the overlay in the very first
+  // painted frame — no visible gap, and no mismatch either.
+  const [visible, setVisible] = useState(false);
+
+  useLayoutEffect(() => {
+    const target = sessionStorage.getItem(SWITCHING_KEY);
+    if (!target) return;
+    // Reading sessionStorage is reading state external to React that the
+    // server has no access to — exactly the case the "don't setState in an
+    // effect" rule carves out an exception for (synchronizing with an
+    // external system), not a computation that belongs during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisible(true);
+
+    function finish() {
+      sessionStorage.removeItem(SWITCHING_KEY);
+      setVisible(false);
+    }
+
+    // Switching to English needs no translation pass to wait for — just
+    // hold the overlay briefly so the reload itself doesn't flash.
+    if (target === "en") {
+      const t = setTimeout(finish, 300);
+      return () => clearTimeout(t);
+    }
+
+    // Google adds translated-ltr/translated-rtl to <html> once its
+    // translation pass finishes.
+    function isTranslated() {
+      return /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className);
+    }
+
+    if (isTranslated()) {
+      const t = setTimeout(finish, 150);
+      return () => clearTimeout(t);
+    }
+
+    const observer = new MutationObserver(() => {
+      if (isTranslated()) {
+        observer.disconnect();
+        setTimeout(finish, 150);
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+    const timeout = setTimeout(() => {
+      observer.disconnect();
+      finish();
+    }, SWITCH_TIMEOUT_MS);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      translate="no"
+      className="notranslate fixed inset-0 z-[300] flex items-center justify-center bg-sand-50/90 backdrop-blur-sm"
+    >
+      <div className="flex items-center gap-2.5 rounded-full bg-white px-5 py-3 text-sm font-medium text-ink-700 shadow-soft">
+        <Loader2 size={16} className="animate-spin text-amber-500" />
+        Translating…
+      </div>
+    </div>
+  );
 }
 
 export default function LanguageSwitcher({
@@ -194,6 +285,7 @@ export default function LanguageSwitcher({
     // English label becomes "Anglais" once the page is in French), which
     // defeats the point of using fixed native-script labels here.
     <div ref={rootRef} translate="no" className={`notranslate relative ${className}`}>
+      <SwitchOverlay />
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

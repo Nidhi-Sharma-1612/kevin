@@ -37,6 +37,16 @@ export const metadata: Metadata = {
     description,
     images: ["/icon.png"],
   },
+  // Once our own widget translates the page, `<html lang>` below reflects
+  // that — which then looks to Chrome like a page in French/Spanish being
+  // viewed by an English-browser user, and it offers its own native
+  // translate prompt on top of ours. This is the documented way to tell
+  // Google specifically (Chrome's prompt and Search's "Translate this
+  // page") not to do that, without affecting our own explicitly-invoked
+  // widget, which isn't driven by this heuristic at all.
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default async function RootLayout({
