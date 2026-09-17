@@ -122,8 +122,31 @@ function installBannerSuppressor() {
   });
 }
 
+// Google's own script can write the googtrans cookie back with an explicit
+// domain attribute (host or ".host"), separate from the plain path=/ cookie
+// we set ourselves. Once that happens there are two cookies with the same
+// name, and the browser can send either one first — so just overwriting our
+// own copy isn't reliable; every variant has to be cleared before setting
+// (or not setting) a new one, or "switch back to English" can silently pick
+// up a stale French/Spanish cookie instead.
+function clearGoogTransCookie() {
+  const expired = "expires=Thu, 01 Jan 1970 00:00:00 UTC";
+  const host = window.location.hostname;
+  document.cookie = `googtrans=; path=/; ${expired}`;
+  document.cookie = `googtrans=; path=/; domain=${host}; ${expired}`;
+  document.cookie = `googtrans=; path=/; domain=.${host}; ${expired}`;
+}
+
 function selectLanguage(code: string) {
-  document.cookie = `googtrans=/en/${code}; path=/`;
+  clearGoogTransCookie();
+  // English is the page's own source language — leaving the cookie unset
+  // is the reliable way back to it. Setting "/en/en" (source=target) still
+  // leaves a cookie for Google's widget to find on load, and in practice
+  // that's enough for it to re-run its translation pass instead of leaving
+  // the original English markup alone.
+  if (code !== "en") {
+    document.cookie = `googtrans=/en/${code}; path=/`;
+  }
   window.location.reload();
 }
 
