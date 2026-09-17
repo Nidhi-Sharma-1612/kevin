@@ -11,14 +11,17 @@ import {
 import ContactMap from "@/components/ContactMap";
 import Reveal from "@/components/Reveal";
 import { RevealGroup, RevealItem } from "@/components/RevealGroup";
+import { getAllProperties } from "@/lib/properties";
 
-const TRUST_PILLS = [
-  { icon: Clock, label: "Replies within a few hours" },
-  { icon: ShieldCheck, label: "Local Torremolinos team" },
-  { icon: MessageCircle, label: "26+ apartments managed" },
-];
+export default async function ContactPage() {
+  const properties = await getAllProperties();
 
-export default function ContactPage() {
+  const trustPills = [
+    { icon: Clock, label: "Replies within a few hours" },
+    { icon: ShieldCheck, label: "Local Torremolinos team" },
+    { icon: MessageCircle, label: `${properties.length}+ apartments managed` },
+  ];
+
   return (
     <div className="relative overflow-hidden py-16">
       <div
@@ -45,7 +48,7 @@ export default function ContactPage() {
           </p>
 
           <RevealGroup className="mt-6 flex flex-wrap gap-3">
-            {TRUST_PILLS.map(({ icon: Icon, label }) => (
+            {trustPills.map(({ icon: Icon, label }) => (
               <RevealItem
                 key={label}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-semibold text-ink-600 shadow-card"
@@ -186,7 +189,7 @@ export default function ContactPage() {
             Our apartments are spread across Torremolinos, Costa del Sol.
           </p>
           <div className="mt-5 h-80 w-full overflow-hidden rounded-2xl shadow-soft">
-            <ContactMap />
+            <ContactMap properties={properties} />
           </div>
         </Reveal>
 

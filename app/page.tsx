@@ -19,23 +19,8 @@ import TestimonialCard from "@/components/TestimonialCard";
 import CtaSection from "@/components/CtaSection";
 import Reveal from "@/components/Reveal";
 import { RevealGroup, RevealItem } from "@/components/RevealGroup";
-import { properties } from "@/lib/mock-properties";
-
-// Distinct from HERO_IMAGES in Hero.tsx — avoids showing the same photo
-// twice within one scroll (hero → welcome/concierge galleries).
-const WELCOME_GALLERY = [
-  "https://l.icdbcdn.com/oh/dfe84343-3455-4701-9427-6b851543df94.jpg?w=1000",
-  "https://l.icdbcdn.com/oh/6d5ef51b-6006-4629-a86a-48764eae5a98.jpg?w=1000",
-  "https://l.icdbcdn.com/oh/be7071d6-e4c2-40da-9281-2c016a5e637a.jpg?w=1000",
-  "https://l.icdbcdn.com/oh/6e87286f-ea0d-48eb-b6aa-a063a2e4ba80.jpg?w=1000",
-  "https://l.icdbcdn.com/oh/a36c8a77-8374-4ca1-b3a2-ce5c7c79fd8a.jpg?w=1000",
-].map((src, i) => ({ src, alt: `Andalusian apartment interior ${i + 1}` }));
-
-const CONCIERGE_GALLERY = [
-  "https://l.icdbcdn.com/oh/40a54a52-4a66-46ef-bf3a-65964d467085.jpg?w=1000",
-  "https://l.icdbcdn.com/oh/ff035e6f-0838-4365-9bd1-4f2fb9a34531.jpg?w=1000",
-  "https://l.icdbcdn.com/oh/d2bb4f17-d588-4a37-aa68-4bd4c9bde6a3.jpg?w=1000",
-].map((src, i) => ({ src, alt: `Concierge-managed apartment ${i + 1}` }));
+import { getAllProperties } from "@/lib/properties";
+import { pickDecorativeImages } from "@/lib/decorative-images";
 
 const AMENITIES = [
   {
@@ -107,12 +92,24 @@ const TESTIMONIALS = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const properties = await getAllProperties();
   const featured = properties.slice(0, 6);
+  const neighborhoodCount = new Set(properties.map((p) => p.neighborhood)).size;
+  const maxGuests = Math.max(1, ...properties.map((p) => p.guests));
+  const decorativeImages = pickDecorativeImages(properties);
+  const welcomeGallery = decorativeImages.welcome.map((src, i) => ({
+    src,
+    alt: `Andalusian apartment interior ${i + 1}`,
+  }));
+  const conciergeGallery = decorativeImages.concierge.map((src, i) => ({
+    src,
+    alt: `Concierge-managed apartment ${i + 1}`,
+  }));
 
   return (
     <div>
-      <Hero />
+      <Hero images={decorativeImages.hero} maxGuests={maxGuests} />
 
       {/* Welcome */}
       <section className="relative overflow-hidden py-20">
@@ -152,8 +149,8 @@ export default function Home() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 {[
-                  { icon: HomeIcon, label: "26 Apartments" },
-                  { icon: MapPinned, label: "4 Neighborhoods" },
+                  { icon: HomeIcon, label: `${properties.length} Apartments` },
+                  { icon: MapPinned, label: `${neighborhoodCount} Neighborhoods` },
                   { icon: Star, label: "5★ Hospitality" },
                 ].map(({ icon: Icon, label }) => (
                   <span
@@ -177,14 +174,14 @@ export default function Home() {
             <Reveal delay={0.1}>
               <div className="relative mx-auto max-w-md pb-10 pl-0 sm:pb-14 lg:mx-0 lg:max-w-none lg:pl-10">
                 <SectionCarousel
-                  images={WELCOME_GALLERY}
+                  images={welcomeGallery}
                   rounded="rounded-tl-[3rem] rounded-tr-2xl rounded-br-[3rem] rounded-bl-2xl"
                   className="relative z-10"
                 />
 
                 <div className="absolute -bottom-8 left-0 z-20 hidden h-36 w-28 overflow-hidden rounded-tr-[2.5rem] rounded-bl-[2.5rem] rounded-tl-lg rounded-br-lg border-4 border-sand-50 shadow-soft sm:block lg:h-44 lg:w-36">
                   <Image
-                    src="https://l.icdbcdn.com/oh/1c5ad309-2c66-4f5f-8a19-d0c21aea5180.jpg?w=400"
+                    src={decorativeImages.poolThumbnail}
                     alt="Sea-view pool terrace in Torremolinos"
                     fill
                     sizes="180px"
@@ -198,7 +195,7 @@ export default function Home() {
                   </span>
                   <span className="leading-tight">
                     <span className="block font-display text-lg font-semibold text-ink-800">
-                      26+
+                      {properties.length}+
                     </span>
                     <span className="block text-[11px] text-ink-500">
                       Homes across Torremolinos
@@ -295,7 +292,7 @@ export default function Home() {
               <div className="relative mx-auto max-w-md lg:mx-0 lg:max-w-none">
                 <div className="relative aspect-[4/5] w-full overflow-hidden rounded-tl-[3rem] rounded-tr-2xl rounded-br-[3rem] rounded-bl-2xl shadow-soft">
                   <Image
-                    src="https://l.icdbcdn.com/oh/4493cf1f-30e2-4fac-9476-b8f12f8c860e.jpg?w=900"
+                    src={decorativeImages.comfortSection}
                     alt="Comfortable, spa-style interior of a La Conciergerie Del Sol apartment"
                     fill
                     sizes="(max-width: 1024px) 100vw, 560px"
@@ -380,7 +377,7 @@ export default function Home() {
             <Reveal>
               <div className="relative mx-auto max-w-md lg:mx-0 lg:max-w-none">
                 <SectionCarousel
-                  images={CONCIERGE_GALLERY}
+                  images={conciergeGallery}
                   rounded="rounded-tl-2xl rounded-tr-[3rem] rounded-br-2xl rounded-bl-[3rem]"
                 />
                 <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-soft sm:-bottom-6 sm:left-8">
@@ -446,7 +443,7 @@ export default function Home() {
         </div>
       </section>
 
-      <CtaSection />
+      <CtaSection backgroundImage={decorativeImages.ctaBackground} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 import Logo from "./Logo";
 
 const NAV_LINKS = [
@@ -16,7 +17,7 @@ const NAV_LINKS = [
 // roughly the distance from the top to below the hero's text block.
 const SOLIDIFY_AT = 80;
 
-export default function Header() {
+export default function Header({ initialLanguage }: { initialLanguage: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -82,25 +83,29 @@ export default function Header() {
           })}
         </nav>
 
-        <div className="hidden md:block">
-          <Link
-            href="/properties"
-            className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300"
-          >
-            Book your stay
-          </Link>
-        </div>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher initialLanguage={initialLanguage} />
 
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className={`inline-flex items-center justify-center rounded-full p-2 transition-colors duration-300 md:hidden ${
-            transparent ? "text-white" : "text-ink-700"
-          }`}
-          aria-label={open ? "Close menu" : "Open menu"}
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+          <div className="hidden md:block">
+            <Link
+              href="/properties"
+              className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300"
+            >
+              Book your stay
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className={`inline-flex items-center justify-center rounded-full p-2 transition-colors duration-300 md:hidden ${
+              transparent ? "text-white" : "text-ink-700"
+            }`}
+            aria-label={open ? "Close menu" : "Open menu"}
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {open && (

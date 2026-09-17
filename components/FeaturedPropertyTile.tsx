@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BedDouble, MapPin, Users } from "lucide-react";
-import type { Property } from "@/lib/mock-properties";
+import type { Property } from "@/lib/properties";
+import { formatPrice } from "@/lib/currency";
 
 export default function FeaturedPropertyTile({
   property,
@@ -32,7 +33,7 @@ export default function FeaturedPropertyTile({
       <div className="absolute inset-0 bg-gradient-to-t from-ink-950/95 from-15% via-ink-950/55 via-45% to-transparent" />
 
       <span className="absolute top-3 left-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink-800 shadow-soft">
-        from €{property.pricePerNight}/night
+        from {formatPrice(property.pricePerNight, property.currency)}/night
       </span>
 
       <div className={`absolute inset-x-0 bottom-0 p-4 ${size === "lg" ? "sm:p-6" : "sm:p-4"}`}>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 
-export default function CtaSection() {
+export default function CtaSection({ backgroundImage }: { backgroundImage: string }) {
   return (
     <section className="relative overflow-hidden bg-amber-400 py-20">
       <motion.div
@@ -15,13 +15,15 @@ export default function CtaSection() {
         viewport={{ once: true }}
         transition={{ duration: 8, ease: "easeOut" }}
       >
-        <Image
-          src="https://l.icdbcdn.com/oh/b04f7cca-7770-4eda-8409-390ff4055692.jpg?w=1600"
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover opacity-25"
-        />
+        {backgroundImage && (
+          <Image
+            src={backgroundImage}
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover opacity-25"
+          />
+        )}
       </motion.div>
       <div className="absolute inset-0 bg-gradient-to-b from-amber-400/95 via-amber-400/90 to-amber-500/95" />
 

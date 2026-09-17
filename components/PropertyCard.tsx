@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, BedDouble, MapPin, Users } from "lucide-react";
-import type { Property } from "@/lib/mock-properties";
+import type { Property } from "@/lib/properties";
+import { formatPrice } from "@/lib/currency";
 
 export default function PropertyCard({
   property,
@@ -34,7 +35,7 @@ export default function PropertyCard({
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-ink-800 backdrop-blur">
-          from €{property.pricePerNight}/night
+          from {formatPrice(property.pricePerNight, property.currency)}/night
         </span>
       </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { Property } from "@/lib/mock-properties";
+import type { Property } from "@/lib/properties";
 
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
   ssr: false,

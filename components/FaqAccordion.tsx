@@ -17,7 +17,7 @@ const FAQS = [
   {
     question: "Is there a minimum stay?",
     answer:
-      "Most apartments require a minimum stay of 2–3 nights, with some properties requiring a full week during peak summer season.",
+      "It depends on the apartment and the season — many have no minimum at all, though some require a few nights during peak periods. If a stay you've selected is too short, we'll flag the exact requirement for that property before you book.",
   },
   {
     question: "Do you offer airport transfers?",

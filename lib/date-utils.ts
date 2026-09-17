@@ -42,6 +42,12 @@ export function isAfter(a: Date, b: Date): boolean {
   return startOfDay(a).getTime() > startOfDay(b).getTime();
 }
 
+export function diffInDays(a: Date, b: Date): number {
+  return Math.round(
+    (startOfDay(a).getTime() - startOfDay(b).getTime()) / 86400000
+  );
+}
+
 export function addMonths(date: Date, amount: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + amount, 1);
 }
@@ -102,13 +108,4 @@ export function fromISODate(value: string | null | undefined): Date | null {
   const [, y, m, d] = match;
   const date = new Date(Number(y), Number(m) - 1, Number(d));
   return Number.isNaN(date.getTime()) ? null : date;
-}
-
-// Deterministic mock "booked" dates so the calendar has something to show
-// before real Lodgify availability data is wired in.
-export function isMockBooked(date: Date): boolean {
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000
-  );
-  return (dayOfYear * 7 + date.getMonth()) % 11 === 0;
 }

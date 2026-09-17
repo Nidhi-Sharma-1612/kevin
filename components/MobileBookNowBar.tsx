@@ -1,13 +1,16 @@
 "use client";
 
 import { formatShortDate } from "@/lib/date-utils";
+import { formatPrice } from "@/lib/currency";
 
 export default function MobileBookNowBar({
   pricePerNight,
+  currency,
   initialCheckIn = null,
   initialCheckOut = null,
 }: {
   pricePerNight: number;
+  currency: string;
   initialCheckIn?: Date | null;
   initialCheckOut?: Date | null;
 }) {
@@ -22,7 +25,7 @@ export default function MobileBookNowBar({
       <div className="mx-auto flex max-w-xl items-center justify-between gap-4">
         <div>
           <p className="font-display text-lg font-semibold text-ink-800">
-            €{pricePerNight}
+            {formatPrice(pricePerNight, currency)}
             <span className="text-xs font-normal text-ink-500"> / night</span>
           </p>
           {initialCheckIn && initialCheckOut ? (

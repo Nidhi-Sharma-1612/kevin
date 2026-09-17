@@ -10,7 +10,8 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { useEffect, useMemo } from "react";
-import type { Property } from "@/lib/mock-properties";
+import type { Property } from "@/lib/properties";
+import { formatPrice } from "@/lib/currency";
 import "leaflet/dist/leaflet.css";
 
 // Classic "map pin" teardrop marker — matches the shape of the reference
@@ -136,7 +137,7 @@ export default function PropertyMap({
                   {property.location}
                 </p>
                 <p className="mt-1.5 text-xs font-semibold text-amber-600">
-                  from €{property.pricePerNight}/night
+                  from {formatPrice(property.pricePerNight, property.currency)}/night
                 </p>
               </div>
             </div>

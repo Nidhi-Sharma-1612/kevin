@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -38,18 +39,27 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reading the language cookie server-side means the very first HTML byte
+  // is already in the right language — no client-side flip after
+  // hydration. That flip previously raced with Google Translate's own DOM
+  // scan (which runs as soon as its script loads) and could leave stray
+  // untranslated/reverted text behind depending on timing.
+  const cookieStore = await cookies();
+  const googtrans = cookieStore.get("googtrans")?.value ?? "";
+  const initialLanguage = googtrans.split("/").filter(Boolean)[1] ?? "en";
+
   return (
-    <html lang="en">
+    <html lang={initialLanguage}>
       <body className={`${fraunces.variable} ${inter.variable} antialiased`}>
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <Header />
+        <Header initialLanguage={initialLanguage} />
         <main id="main-content" className="pt-18">
           {children}
         </main>

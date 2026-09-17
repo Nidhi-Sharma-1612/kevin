@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -8,12 +8,13 @@ import {
   WEEKDAY_LABELS,
   addMonths,
   buildMonthGrid,
+  diffInDays,
   formatShortDate,
   isAfter,
   isBefore,
-  isMockBooked,
   isSameDay,
   startOfDay,
+  toISODate,
 } from "@/lib/date-utils";
 
 const POPOVER_WIDTH = 680;
@@ -26,6 +27,8 @@ function Month({
   checkOut,
   hovered,
   today,
+  bookedDates,
+  minNights,
   onSelect,
   onHover,
 }: {
@@ -35,11 +38,19 @@ function Month({
   checkOut: Date | null;
   hovered: Date | null;
   today: Date;
+  bookedDates?: Set<string>;
+  // Learned reactively from a past rejected quote (Lodgify has no upfront
+  // field for this) — while picking a check-out date, any date closer than
+  // this to check-in is disabled here, the same way a booked date is, so
+  // the constraint is visible before the guest picks an invalid range
+  // rather than only after.
+  minNights?: number;
   onSelect: (date: Date) => void;
   onHover: (date: Date | null) => void;
 }) {
   const days = buildMonthGrid(year, month);
   const rangeEnd = checkOut ?? hovered;
+  const pickingCheckout = Boolean(checkIn) && !checkOut;
 
   return (
     <div className="w-full">
@@ -56,8 +67,16 @@ function Month({
 
         {days.map(({ date, inCurrentMonth }, i) => {
           const past = isBefore(date, today);
-          const booked = inCurrentMonth && isMockBooked(date) && !past;
-          const disabled = !inCurrentMonth || past || booked;
+          const isBooked = bookedDates?.has(toISODate(date)) ?? false;
+          const booked = inCurrentMonth && isBooked && !past;
+          const tooSoon =
+            inCurrentMonth &&
+            pickingCheckout &&
+            minNights !== undefined &&
+            checkIn !== null &&
+            isAfter(date, checkIn) &&
+            diffInDays(date, checkIn) < minNights;
+          const disabled = !inCurrentMonth || past || booked || tooSoon;
 
           const isCheckIn = isSameDay(date, checkIn);
           const isCheckOut = isSameDay(date, checkOut);
@@ -78,7 +97,13 @@ function Month({
               key={i}
               type="button"
               disabled={disabled}
-              title={booked ? "Not available" : undefined}
+              title={
+                booked
+                  ? "Not available"
+                  : tooSoon
+                    ? `Minimum stay is ${minNights} nights`
+                    : undefined
+              }
               onClick={() => onSelect(date)}
               onMouseEnter={() => onHover(date)}
               className={`relative h-9 text-sm transition-colors ${
@@ -92,14 +117,23 @@ function Month({
               <span
                 className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full ${
                   isEndpoint
-                    ? "bg-cyan-500 font-semibold text-white"
+                    ? // A pre-filled endpoint (e.g. from a homepage search
+                      // link) can land on a date that's actually booked for
+                      // this property — flag it red rather than showing the
+                      // same "selected" blue as a valid date, so the
+                      // conflict is obvious without reading the warning text.
+                      isBooked
+                      ? "bg-red-500 font-semibold text-white"
+                      : "bg-cyan-500 font-semibold text-white"
                     : !inCurrentMonth
                       ? "text-ink-300 line-through"
                       : booked
                         ? "text-ink-300 line-through"
-                        : past
-                          ? "text-ink-200"
-                          : "text-ink-700 hover:bg-cyan-50"
+                        : tooSoon
+                          ? "text-ink-300"
+                          : past
+                            ? "text-ink-200"
+                            : "text-ink-700 hover:bg-cyan-50"
                 }`}
               >
                 {date.getDate()}
@@ -117,11 +151,31 @@ export default function DateRangePicker({
   onChange,
   initialCheckIn = null,
   initialCheckOut = null,
+  bookedDates,
+  availabilityLabel,
+  minNights,
 }: {
   className?: string;
   onChange?: (checkIn: Date | null, checkOut: Date | null) => void;
   initialCheckIn?: Date | null;
   initialCheckOut?: Date | null;
+  // Real booked dates, either for one property (BookingWidget, from
+  // /api/availability) or aggregated across a whole location (the homepage
+  // search widget, from /api/location-availability — booked there means
+  // every property in that neighborhood is booked that day). Omitted
+  // entirely when there's no scope to check against yet (e.g. the homepage
+  // search before a location is picked), in which case nothing renders as
+  // booked.
+  bookedDates?: Set<string>;
+  // Short context label shown next to the legend when bookedDates is scoped
+  // to something the guest picked (e.g. "La Nogalera") — so it's clear what
+  // the booked/available dates are relative to.
+  availabilityLabel?: string;
+  // Learned from a rejected quote (see BookingWidget's useQuote) — Lodgify
+  // has no upfront minimum-stay field, so this is only known once a stay
+  // that violated it has actually been tried. Omitted for callers with no
+  // specific property (the homepage search), same as bookedDates.
+  minNights?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [checkIn, setCheckIn] = useState<Date | null>(initialCheckIn);
@@ -138,6 +192,23 @@ export default function DateRangePicker({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const today = startOfDay(new Date());
+
+  // A pre-filled selection (e.g. dates carried over from the homepage
+  // search, which has no per-property availability to check against) can
+  // land on dates that are actually booked for this specific property —
+  // flag that on the collapsed Check-in/Check-out buttons themselves, so
+  // it's visible without opening the calendar.
+  const hasConflict = useMemo(() => {
+    if (!checkIn || !checkOut || !bookedDates) return false;
+    for (
+      let d = new Date(checkIn);
+      d.getTime() <= checkOut.getTime();
+      d.setDate(d.getDate() + 1)
+    ) {
+      if (bookedDates.has(toISODate(d))) return true;
+    }
+    return false;
+  }, [checkIn, checkOut, bookedDates]);
 
   useEffect(() => {
     onChange?.(checkIn, checkOut);
@@ -230,12 +301,17 @@ export default function DateRangePicker({
         onClick={() => setOpen((v) => !v)}
         className="flex flex-1 items-center gap-3 px-5 py-3.5 text-left"
       >
-        <CalendarDays size={18} className="shrink-0 text-amber-500" />
+        <CalendarDays
+          size={18}
+          className={`shrink-0 ${hasConflict ? "text-red-500" : "text-amber-500"}`}
+        />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-[11px] font-medium whitespace-nowrap text-ink-500">
             Check-in
           </span>
-          <span className="text-sm font-medium text-ink-800">
+          <span
+            className={`text-sm font-medium ${hasConflict ? "text-red-600" : "text-ink-800"}`}
+          >
             {checkIn ? formatShortDate(checkIn) : "Add date"}
           </span>
         </span>
@@ -248,12 +324,17 @@ export default function DateRangePicker({
         onClick={() => setOpen((v) => !v)}
         className="flex flex-1 items-center gap-3 px-5 py-3.5 text-left"
       >
-        <CalendarDays size={18} className="shrink-0 text-amber-500" />
+        <CalendarDays
+          size={18}
+          className={`shrink-0 ${hasConflict ? "text-red-500" : "text-amber-500"}`}
+        />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-[11px] font-medium whitespace-nowrap text-ink-500">
             Check-out
           </span>
-          <span className="text-sm font-medium text-ink-800">
+          <span
+            className={`text-sm font-medium ${hasConflict ? "text-red-600" : "text-ink-800"}`}
+          >
             {checkOut ? formatShortDate(checkOut) : "Add date"}
           </span>
         </span>
@@ -283,6 +364,11 @@ export default function DateRangePicker({
                 <ChevronLeft size={18} />
               </button>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
+                {availabilityLabel && (
+                  <span className="rounded-full bg-cyan-50 px-2.5 py-1 font-semibold text-cyan-700">
+                    Availability for {availabilityLabel}
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" /> Selected
                 </span>
@@ -290,8 +376,14 @@ export default function DateRangePicker({
                   <span className="h-2.5 w-2.5 rounded-full border border-ink-200" /> Available
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-ink-100 text-ink-300 line-through" /> Booked
+                  <span className="h-2.5 w-2.5 rounded-full bg-ink-100 text-ink-300 line-through" />{" "}
+                  {availabilityLabel ? "Fully booked" : "Booked"}
                 </span>
+                {minNights !== undefined && (
+                  <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                    Minimum stay: {minNights} {minNights === 1 ? "night" : "nights"}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -314,6 +406,8 @@ export default function DateRangePicker({
                 checkOut={checkOut}
                 hovered={hovered}
                 today={today}
+                bookedDates={bookedDates}
+                minNights={minNights}
                 onSelect={handleSelect}
                 onHover={setHovered}
               />
@@ -325,6 +419,8 @@ export default function DateRangePicker({
                   checkOut={checkOut}
                   hovered={hovered}
                   today={today}
+                  bookedDates={bookedDates}
+                  minNights={minNights}
                   onSelect={handleSelect}
                   onHover={setHovered}
                 />

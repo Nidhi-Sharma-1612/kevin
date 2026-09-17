@@ -1,0 +1,229 @@
+"use client";
+
+import Script from "next/script";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Languages } from "lucide-react";
+
+type TranslateElementOptions = {
+  pageLanguage: string;
+  includedLanguages: string;
+  layout: number;
+  autoDisplay: boolean;
+};
+
+type GoogleTranslateGlobal = {
+  translate: {
+    TranslateElement: {
+      new (options: TranslateElementOptions, containerId: string): void;
+      InlineLayout: { SIMPLE: number };
+    };
+  };
+};
+
+declare global {
+  interface Window {
+    googleTranslateElementInit?: () => void;
+    google?: GoogleTranslateGlobal;
+    __gtDomPatched?: boolean;
+    __gtInitialized?: boolean;
+    __gtBannerSuppressorInstalled?: boolean;
+  }
+}
+
+const CONTAINER_ID = "google_translate_element";
+
+const OPTIONS: TranslateElementOptions = {
+  pageLanguage: "en",
+  includedLanguages: "en,fr,es",
+  layout: 0, // filled in with the real InlineLayout.SIMPLE value at init time
+  autoDisplay: false,
+};
+
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "fr", label: "Français" },
+  { code: "es", label: "Español" },
+];
+
+// Google's Website Translator widget only supports one active instance per
+// page, and its own popup UI is cross-origin content we can't restyle to
+// match the site. So the widget itself is kept mounted but visually
+// hidden (see the sr-only wrapper below) purely so it can perform the
+// actual translation, while a fully custom-themed control drives it by
+// setting the "googtrans" cookie it reads on load and reloading the page.
+function initWidget() {
+  if (!window.google || window.__gtInitialized) return;
+  const el = document.getElementById(CONTAINER_ID);
+  if (!el || el.hasChildNodes()) return;
+  window.__gtInitialized = true;
+  new window.google.translate.TranslateElement(
+    { ...OPTIONS, layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE },
+    CONTAINER_ID
+  );
+}
+
+// React and Google's translate widget both mutate the same DOM, and the
+// widget can detach/replace text nodes that React still expects to own.
+// When React later tries to remove or reinsert one of those nodes, the
+// browser throws a NotFoundError that crashes the app. This guards the two
+// DOM methods involved so a mismatch is a no-op instead of a crash — a
+// narrow, well-documented workaround for this specific combination.
+function patchDomForGoogleTranslate() {
+  if (window.__gtDomPatched) return;
+  window.__gtDomPatched = true;
+
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function (this: Node, child: Node): Node {
+    if (child.parentNode !== this) return child;
+    return originalRemoveChild.call(this, child);
+  } as typeof Node.prototype.removeChild;
+
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function (
+    this: Node,
+    newNode: Node,
+    referenceNode: Node | null
+  ): Node {
+    if (referenceNode && referenceNode.parentNode !== this) return newNode;
+    return originalInsertBefore.call(this, newNode, referenceNode);
+  } as typeof Node.prototype.insertBefore;
+}
+
+// Belt-and-suspenders: our own UI never touches Google's native trigger, so
+// its "Translated into: X ▾" banner shouldn't appear — but if a future
+// script version does show it on load, hide it. Detected structurally
+// (a "skiptranslate" iframe fixed at top:0 spanning most of the viewport)
+// since Google's banner class name is obfuscated and changes across
+// versions.
+function installBannerSuppressor() {
+  if (window.__gtBannerSuppressorInstalled) return;
+  window.__gtBannerSuppressorInstalled = true;
+
+  function isBannerFrame(el: Element): el is HTMLIFrameElement {
+    if (!(el instanceof HTMLIFrameElement)) return false;
+    if (!el.classList.contains("skiptranslate")) return false;
+    const style = window.getComputedStyle(el);
+    if (style.position !== "fixed" || style.top !== "0px") return false;
+    return el.getBoundingClientRect().width > window.innerWidth * 0.5;
+  }
+
+  function rescan() {
+    document.querySelectorAll("iframe.skiptranslate").forEach((el) => {
+      if (isBannerFrame(el)) el.style.setProperty("display", "none", "important");
+    });
+  }
+
+  rescan();
+  const observer = new MutationObserver(rescan);
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+  });
+}
+
+function selectLanguage(code: string) {
+  document.cookie = `googtrans=/en/${code}; path=/`;
+  window.location.reload();
+}
+
+export default function LanguageSwitcher({
+  initialLanguage,
+  className = "",
+}: {
+  initialLanguage: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  // Read server-side (RootLayout reads the googtrans cookie and passes it
+  // down) rather than from document.cookie client-side: the server render
+  // and the client's first render then agree from the start, with no
+  // hydration flip. That flip used to race Google Translate's own DOM scan
+  // (which starts as soon as its script loads) and could leave the wrong
+  // text behind depending on timing.
+  const [current] = useState(initialLanguage);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    patchDomForGoogleTranslate();
+    installBannerSuppressor();
+
+    window.googleTranslateElementInit = initWidget;
+    if (window.google) initWidget();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const currentLabel = LANGUAGES.find((l) => l.code === current)?.label ?? "English";
+
+  return (
+    // "notranslate" tells Google's engine to skip this subtree — without
+    // it, the engine translates our own language names too (e.g. the
+    // English label becomes "Anglais" once the page is in French), which
+    // defeats the point of using fixed native-script labels here.
+    <div ref={rootRef} translate="no" className={`notranslate relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex items-center gap-1.5 rounded-full border border-ink-100 bg-sand-50 px-3.5 py-2 text-sm font-medium text-ink-700 transition-colors hover:border-amber-300 hover:bg-sand-100"
+      >
+        <Languages size={15} className="shrink-0 text-amber-500" aria-hidden />
+        <span>{currentLabel}</span>
+        <ChevronDown
+          size={14}
+          className={`shrink-0 text-amber-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute top-[calc(100%+8px)] right-0 z-50 w-40 overflow-hidden rounded-xl bg-white p-1.5 shadow-soft ring-1 ring-ink-900/5"
+        >
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              type="button"
+              role="option"
+              aria-selected={lang.code === current}
+              onClick={() => {
+                setOpen(false);
+                if (lang.code !== current) selectLanguage(lang.code);
+              }}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                lang.code === current
+                  ? "bg-amber-50 font-semibold text-amber-600"
+                  : "text-ink-700 hover:bg-sand-100"
+              }`}
+            >
+              {lang.label}
+              {lang.code === current && <Check size={14} className="shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Google's actual translation engine — visually hidden, its own
+          popup UI is never shown; the button above drives it via cookie. */}
+      <div className="sr-only" aria-hidden="true">
+        <div id={CONTAINER_ID} />
+      </div>
+      <Script
+        id="google-translate-script"
+        src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+        strategy="afterInteractive"
+      />
+    </div>
+  );
+}

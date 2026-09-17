@@ -5,23 +5,24 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import SearchBar from "./SearchBar";
 
-const HERO_IMAGES = [
-  "https://l.icdbcdn.com/oh/278e0421-df18-464d-bc8e-9d3a01abead3.jpg?w=2080",
-  "https://l.icdbcdn.com/oh/e93ed229-7334-408b-aedb-4066ad603281.jpg?w=2080",
-  "https://l.icdbcdn.com/oh/972fb81b-223c-4f69-a7f5-2fabf2139599.jpg?w=2080",
-];
-
 const SLIDE_DURATION = 6000;
 
-export default function Hero() {
+export default function Hero({
+  images,
+  maxGuests,
+}: {
+  images: string[];
+  maxGuests: number;
+}) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    if (images.length < 2) return;
     const id = setInterval(() => {
-      setIndex((i) => (i + 1) % HERO_IMAGES.length);
+      setIndex((i) => (i + 1) % images.length);
     }, SLIDE_DURATION);
     return () => clearInterval(id);
-  }, []);
+  }, [images.length]);
 
   return (
     <section className="relative -mt-18 flex h-screen min-h-[640px] items-center justify-center overflow-hidden">
@@ -37,14 +38,16 @@ export default function Hero() {
             scale: { duration: SLIDE_DURATION / 1000 + 1.2, ease: "easeOut" },
           }}
         >
-          <Image
-            src={HERO_IMAGES[index]}
-            alt="Sunlit Andalusian apartment in Torremolinos"
-            fill
-            priority={index === 0}
-            sizes="100vw"
-            className="object-cover"
-          />
+          {images[index] && (
+            <Image
+              src={images[index]}
+              alt="Sunlit Andalusian apartment in Torremolinos"
+              fill
+              priority={index === 0}
+              sizes="100vw"
+              className="object-cover"
+            />
+          )}
         </motion.div>
       </AnimatePresence>
 
@@ -59,7 +62,7 @@ export default function Hero() {
       />
 
       <div className="absolute right-0 bottom-6 left-0 z-20 hidden justify-center gap-2 sm:flex sm:bottom-8">
-        {HERO_IMAGES.map((_, i) => (
+        {images.map((_, i) => (
           <button
             key={i}
             type="button"
@@ -111,7 +114,7 @@ export default function Hero() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mt-9 w-full"
         >
-          <SearchBar />
+          <SearchBar maxGuests={maxGuests} />
         </motion.div>
       </div>
     </section>

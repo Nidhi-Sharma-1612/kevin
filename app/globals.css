@@ -153,3 +153,89 @@ textarea:focus-visible,
   color: var(--color-sand-50) !important;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
 }
+
+/* Google Translate — the actual widget (LanguageSwitcher.tsx) is kept
+   mounted but visually hidden (sr-only) since its own popup UI is
+   cross-origin content that can't be restyled to match the site; a fully
+   custom-themed control drives it instead via its cookie. `body { top: 0 }`
+   is a belt-and-suspenders fallback in case Google still tries to push
+   body content down to make room for its (hidden) banner. */
+body {
+  top: 0 !important;
+}
+
+.google-translate-widget .goog-te-gadget-simple a span {
+  margin-left: 0.375rem;
+}
+
+.google-translate-widget .goog-te-gadget-simple a span:first-child {
+  margin-left: 0;
+}
+
+/* Renders a property's sanitized Lodgify description (app/properties/[slug])
+   — owner-authored rich text (headings, bold, lists, emoji) rather than the
+   flattened plain-text version, styled to match the rest of the site. */
+.property-description {
+  color: var(--color-ink-600);
+  line-height: 1.7;
+}
+
+.property-description > :first-child {
+  margin-top: 0;
+}
+
+.property-description p {
+  margin-top: 0.9em;
+  margin-bottom: 0.9em;
+}
+
+.property-description h2,
+.property-description h3 {
+  font-family: var(--font-display);
+  color: var(--color-ink-800);
+  font-weight: 600;
+  margin-top: 1.75em;
+  margin-bottom: 0.5em;
+}
+
+.property-description h2 {
+  font-size: 1.25rem;
+}
+
+.property-description h3 {
+  font-size: 1.1rem;
+}
+
+.property-description strong {
+  color: var(--color-ink-800);
+  font-weight: 600;
+}
+
+.property-description ul,
+.property-description ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.9em;
+  padding-left: 1.25em;
+}
+
+.property-description ul {
+  list-style: disc;
+}
+
+.property-description ol {
+  list-style: decimal;
+}
+
+.property-description li {
+  margin-top: 0.35em;
+}
+
+.property-description li::marker {
+  color: var(--color-amber-500);
+}
+
+.property-description a {
+  color: var(--color-amber-600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

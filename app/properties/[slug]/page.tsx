@@ -2,24 +2,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  Ban,
   Bath,
   BedDouble,
   Car,
-  CigaretteOff,
-  Clock,
+  Coffee,
   ExternalLink,
+  FileText,
   Key,
-  LogIn,
-  LogOut,
   Mail,
   MapPin,
+  Maximize,
   MessageCircleHeart,
+  PawPrint,
   Refrigerator,
   ShieldCheck,
   Sun,
   Tv,
   Users,
+  UserRound,
   UtensilsCrossed,
   Waves,
   WashingMachine,
@@ -27,11 +27,12 @@ import {
   Wind,
 } from "lucide-react";
 import BookingWidget from "@/components/BookingWidget";
+import ExpandableDescription from "@/components/ExpandableDescription";
 import MobileBookNowBar from "@/components/MobileBookNowBar";
 import PropertyCard from "@/components/PropertyCard";
 import PropertyHeroGallery from "@/components/PropertyHeroGallery";
 import PropertyLocationMap from "@/components/PropertyLocationMap";
-import { properties, type Amenity } from "@/lib/mock-properties";
+import { getAllProperties, getPropertyPolicy, type Amenity } from "@/lib/properties";
 import { fromISODate } from "@/lib/date-utils";
 
 const AMENITY_ICONS: Record<Amenity["icon"], typeof Wifi> = {
@@ -49,7 +50,8 @@ const AMENITY_ICONS: Record<Amenity["icon"], typeof Wifi> = {
   fridge: Refrigerator,
 };
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const properties = await getAllProperties();
   return properties.map((property) => ({ slug: property.slug }));
 }
 
@@ -62,9 +64,12 @@ export default async function PropertyDetailPage({
 }) {
   const { slug } = await params;
   const search = await searchParams;
+  const properties = await getAllProperties();
   const property = properties.find((p) => p.slug === slug);
 
   if (!property) notFound();
+
+  const policy = await getPropertyPolicy(property);
 
   const asString = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
@@ -95,7 +100,7 @@ export default async function PropertyDetailPage({
       </div>
 
       <div className="mx-auto mt-4 max-w-7xl px-5 sm:px-8">
-        <PropertyHeroGallery images={[property.image]} alt={property.title} />
+        <PropertyHeroGallery images={property.images} alt={property.title} />
       </div>
 
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -124,16 +129,25 @@ export default async function PropertyDetailPage({
                 <Bath size={16} className="text-amber-500" />
                 {property.bathrooms} {property.bathrooms === 1 ? "Bathroom" : "Bathrooms"}
               </span>
+              {property.areaSqm && (
+                <span className="flex items-center gap-2">
+                  <Maximize size={16} className="text-amber-500" />
+                  {property.areaSqm} m²
+                </span>
+              )}
             </div>
 
-            {/* About */}
+            {/* About — Lodgify's own rich-text description (headings, bold,
+                lists intact), not a flattened paragraph, so owner-written
+                structure like a dedicated "Guest Access" section reads as
+                intended. */}
             <section className="mt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
                 About this apartment
               </h2>
-              <p className="mt-3 leading-relaxed text-ink-600">
-                {property.description}
-              </p>
+              <div className="mt-3">
+                <ExpandableDescription html={property.descriptionHtml} />
+              </div>
             </section>
 
             {/* Booking widget — shown inline here on mobile/tablet only;
@@ -171,7 +185,12 @@ export default async function PropertyDetailPage({
               </div>
             </section>
 
-            {/* Good to know */}
+            {/* Good to know — real, per-property facts from Lodgify only.
+                Check-in/out times and minimum-stay rules aren't exposed as
+                structured fields on this account (confirmed against the
+                live API), but most listings do state their own check-in
+                details in the description above, so nothing is invented
+                here to fill the gap. */}
             <section className="mt-10 border-t border-ink-100 pt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
                 Good to know
@@ -179,44 +198,39 @@ export default async function PropertyDetailPage({
               <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                 <div className="flex items-center gap-3 text-sm text-ink-700">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
-                    <LogIn size={16} />
+                    <PawPrint size={16} />
                   </span>
-                  Check-in from 3:00 PM
+                  {property.petsAllowed ? "Pets allowed" : "No pets"}
                 </div>
-                <div className="flex items-center gap-3 text-sm text-ink-700">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
-                    <LogOut size={16} />
-                  </span>
-                  Check-out by 11:00 AM
-                </div>
-                <div className="flex items-center gap-3 text-sm text-ink-700">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
-                    <Clock size={16} />
-                  </span>
-                  Minimum stay: 2–3 nights
-                </div>
+                {property.adultsOnly && (
+                  <div className="flex items-center gap-3 text-sm text-ink-700">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
+                      <UserRound size={16} />
+                    </span>
+                    Adults only
+                  </div>
+                )}
+                {property.breakfastIncluded && (
+                  <div className="flex items-center gap-3 text-sm text-ink-700">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
+                      <Coffee size={16} />
+                    </span>
+                    Breakfast included
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm text-ink-700">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
                     <MessageCircleHeart size={16} />
                   </span>
                   24/7 concierge support
                 </div>
-                <div className="flex items-center gap-3 text-sm text-ink-700">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
-                    <CigaretteOff size={16} />
-                  </span>
-                  No smoking
-                </div>
-                <div className="flex items-center gap-3 text-sm text-ink-700">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
-                    <Ban size={16} />
-                  </span>
-                  No parties or events
-                </div>
               </div>
             </section>
 
-            {/* Cancellation policy */}
+            {/* Cancellation policy — real per-property text from Lodgify's
+                quote endpoint when available (see lib/lodgify.ts
+                findPolicyInfo), since it isn't actually a fixed 3-tier
+                schedule the way the old placeholder text implied. */}
             <section className="mt-10 border-t border-ink-100 pt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
                 Cancellation policy
@@ -225,24 +239,22 @@ export default async function PropertyDetailPage({
                 <div className="flex items-start gap-3 rounded-xl bg-sand-50 p-4 text-sm">
                   <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-500" />
                   <p className="text-ink-700">
-                    <span className="font-semibold">Full refund</span> for
-                    cancellations made 14+ days before check-in.
+                    {policy?.cancellationPolicy ??
+                      "Cancellation terms depend on your dates and rate — your concierge will confirm the exact policy when you book."}
                   </p>
                 </div>
-                <div className="flex items-start gap-3 rounded-xl bg-sand-50 p-4 text-sm">
-                  <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-500" />
-                  <p className="text-ink-700">
-                    <span className="font-semibold">50% refund</span> for
-                    cancellations made 7–13 days before check-in.
-                  </p>
-                </div>
-                <div className="flex items-start gap-3 rounded-xl bg-sand-50 p-4 text-sm">
-                  <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-500" />
-                  <p className="text-ink-700">
-                    <span className="font-semibold">No refund</span> for
-                    cancellations made within 7 days of check-in.
-                  </p>
-                </div>
+                {policy?.securityDeposit && (
+                  <div className="flex items-start gap-3 rounded-xl bg-sand-50 p-4 text-sm">
+                    <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-500" />
+                    <p className="text-ink-700">{policy.securityDeposit}</p>
+                  </div>
+                )}
+                {property.agreementText && (
+                  <div className="flex items-start gap-3 rounded-xl bg-sand-50 p-4 text-sm">
+                    <FileText size={16} className="mt-0.5 shrink-0 text-cyan-500" />
+                    <p className="text-ink-700">{property.agreementText}</p>
+                  </div>
+                )}
                 <p className="text-xs text-ink-400">
                   Exact terms are confirmed with your concierge at the time of
                   booking.
@@ -306,6 +318,7 @@ export default async function PropertyDetailPage({
 
       <MobileBookNowBar
         pricePerNight={property.pricePerNight}
+        currency={property.currency}
         initialCheckIn={initialCheckIn}
         initialCheckOut={initialCheckOut}
       />
