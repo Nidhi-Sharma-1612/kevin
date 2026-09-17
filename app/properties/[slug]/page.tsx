@@ -105,7 +105,12 @@ export default async function PropertyDetailPage({
 
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
         <div className="grid gap-12 lg:grid-cols-[1fr_360px]">
-          <div>
+          {/* min-w-0: a grid item's default min-width is its content's
+              min-content size, so without this, unbreakable long content
+              anywhere inside (see .property-description's overflow-wrap
+              fix) can still force this column — and the whole page —
+              wider than the viewport on mobile. */}
+          <div className="min-w-0">
             <h1 className="font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
               {property.title}
             </h1>

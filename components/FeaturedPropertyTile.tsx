@@ -61,7 +61,9 @@ export default function FeaturedPropertyTile({
             </span>
             <span className="flex items-center gap-1.5">
               <BedDouble size={14} className="text-amber-300" />
-              {property.bedrooms} {property.bedrooms === 1 ? "Bed" : "Beds"}
+              {property.bedrooms === 0
+                ? "Studio"
+                : `${property.bedrooms} ${property.bedrooms === 1 ? "Bed" : "Beds"}`}
             </span>
           </div>
         )}

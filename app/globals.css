@@ -178,6 +178,11 @@ body {
 .property-description {
   color: var(--color-ink-600);
   line-height: 1.7;
+  /* Some listings' descriptions include long unbroken tokens (a Spanish
+     tourist-registration number, e.g. "ESFCTU00002902...VUT/MA/760057")
+     with no spaces or hyphens to wrap on — without this, that single word
+     forces the whole column wider than the viewport on mobile. */
+  overflow-wrap: anywhere;
 }
 
 .property-description > :first-child {
