@@ -4,9 +4,17 @@ import { getPropertyBySlug } from "@/lib/properties";
 import { computeQuote } from "@/lib/pricing";
 import { LodgifyRequestError } from "@/lib/lodgify";
 
+// Distinct from a real Stripe API failure (declined card, bad request,
+// etc.) — this means the deployment itself is missing an env var, which
+// `.env.local` being gitignored makes an easy thing to forget when setting
+// up a new hosting environment (it's never present unless configured
+// there separately). Worth telling guests something more useful than
+// "Could not start checkout" for this case (see the catch block below).
+class MissingConfigError extends Error {}
+
 function stripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  if (!key) throw new MissingConfigError("STRIPE_SECRET_KEY is not set");
   return new Stripe(key);
 }
 
@@ -53,6 +61,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid stay dates" }, { status: 400 });
   }
 
+  if (!process.env.NEXT_PUBLIC_SITE_URL) {
+    // Not fatal (falls back below), but worth flagging loudly — a guest
+    // who actually pays would get redirected back to localhost afterwards,
+    // which only shows up once someone completes a real payment.
+    console.warn(
+      "NEXT_PUBLIC_SITE_URL is not set — success/cancel URLs will point at localhost."
+    );
+  }
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   try {
@@ -90,6 +106,19 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
+    if (error instanceof MissingConfigError) {
+      console.error(
+        "Checkout is not configured on this deployment:",
+        error.message
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Online payment isn't available right now — please book by phone or email below.",
+        },
+        { status: 503 }
+      );
+    }
     console.error("Stripe checkout session creation failed", error);
     return NextResponse.json(
       { error: "Could not start checkout" },
