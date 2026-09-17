@@ -123,18 +123,38 @@ function installBannerSuppressor() {
 }
 
 // Google's own script can write the googtrans cookie back with an explicit
-// domain attribute (host or ".host"), separate from the plain path=/ cookie
-// we set ourselves. Once that happens there are two cookies with the same
-// name, and the browser can send either one first — so just overwriting our
-// own copy isn't reliable; every variant has to be cleared before setting
-// (or not setting) a new one, or "switch back to English" can silently pick
-// up a stale French/Spanish cookie instead.
+// domain attribute, separate from the plain path=/ cookie we set ourselves
+// — and not necessarily scoped to the exact hostname either: on a subdomain
+// like kevin.weblaucher.com, a cookie can be set against the parent domain
+// weblaucher.com (or .weblaucher.com) too, which is still visible here but
+// is a *different* cookie than one scoped to the subdomain itself. Once any
+// of these variants exist, the browser can send whichever one it likes
+// first, so clearing only the exact hostname isn't reliable — every
+// variant, at every domain level up to the registrable domain, has to be
+// cleared before setting (or not setting) a new one. Otherwise "switch to
+// English" (or to any other language) can silently keep resolving to
+// whatever stale cookie is still sitting at a level this wasn't clearing.
 function clearGoogTransCookie() {
   const expired = "expires=Thu, 01 Jan 1970 00:00:00 UTC";
   const host = window.location.hostname;
+  const labels = host.split(".");
+
   document.cookie = `googtrans=; path=/; ${expired}`;
-  document.cookie = `googtrans=; path=/; domain=${host}; ${expired}`;
-  document.cookie = `googtrans=; path=/; domain=.${host}; ${expired}`;
+
+  if (labels.length === 1) {
+    // "localhost" or similar — a single label, nothing to walk up to.
+    document.cookie = `googtrans=; path=/; domain=${host}; ${expired}`;
+    return;
+  }
+
+  // Walk from the full hostname up to (but not including) the bare
+  // top-level label — "kevin.weblaucher.com" then "weblaucher.com", never
+  // just "com".
+  for (let i = 0; i < labels.length - 1; i++) {
+    const domain = labels.slice(i).join(".");
+    document.cookie = `googtrans=; path=/; domain=${domain}; ${expired}`;
+    document.cookie = `googtrans=; path=/; domain=.${domain}; ${expired}`;
+  }
 }
 
 // Switching languages does a full reload (the widget's own translation
