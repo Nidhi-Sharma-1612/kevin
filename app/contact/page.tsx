@@ -5,9 +5,9 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  Send,
   ShieldCheck,
 } from "lucide-react";
+import ContactForm from "@/components/ContactForm";
 import ContactMap from "@/components/ContactMap";
 import Reveal from "@/components/Reveal";
 import { RevealGroup, RevealItem } from "@/components/RevealGroup";
@@ -128,69 +128,7 @@ export default async function ContactPage() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <form className="space-y-4 rounded-2xl bg-white p-6 shadow-card sm:p-8">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-medium text-ink-500">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    className="mt-1.5 w-full rounded-xl border border-ink-100 px-4 py-2.5 text-sm text-ink-800 outline-none focus:border-amber-400"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-ink-500">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    className="mt-1.5 w-full rounded-xl border border-ink-100 px-4 py-2.5 text-sm text-ink-800 outline-none focus:border-amber-400"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-medium text-ink-500">
-                    Phone (optional)
-                  </label>
-                  <input
-                    type="tel"
-                    className="mt-1.5 w-full rounded-xl border border-ink-100 px-4 py-2.5 text-sm text-ink-800 outline-none focus:border-amber-400"
-                    placeholder="+34 ..."
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-ink-500">
-                    Dates of stay (optional)
-                  </label>
-                  <input
-                    type="text"
-                    className="mt-1.5 w-full rounded-xl border border-ink-100 px-4 py-2.5 text-sm text-ink-800 outline-none focus:border-amber-400"
-                    placeholder="e.g. 12–19 July"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-ink-500">
-                  Message
-                </label>
-                <textarea
-                  rows={5}
-                  className="mt-1.5 w-full rounded-xl border border-ink-100 px-4 py-2.5 text-sm text-ink-800 outline-none focus:border-amber-400"
-                  placeholder="Tell us about your trip..."
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300 sm:w-auto"
-              >
-                <Send size={15} /> Send message
-              </button>
-              <p className="text-xs text-ink-400">{replyNote}</p>
-            </form>
+            <ContactForm replyNote={replyNote} />
           </Reveal>
         </div>
 
