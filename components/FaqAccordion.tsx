@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
-const FAQS = [
+const FALLBACK_FAQS = [
   {
     question: "What time is check-in and check-out?",
     answer:
@@ -31,8 +31,15 @@ const FAQS = [
   },
 ];
 
-export default function FaqAccordion() {
+// `faqs` comes from the admin panel's FAQ list; the built-in list is only
+// used if the admin panel has none (or can't be reached).
+export default function FaqAccordion({
+  faqs,
+}: {
+  faqs?: { question: string; answer: string }[] | null;
+}) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const FAQS = faqs?.length ? faqs : FALLBACK_FAQS;
 
   return (
     <div className="divide-y divide-ink-100 border-t border-b border-ink-100">

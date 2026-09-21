@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { isUnoptimized } from "@/lib/image-src";
 
 export default function SectionCarousel({
   images,
@@ -38,6 +39,7 @@ export default function SectionCarousel({
         >
           <Image
             src={images[index].src}
+            unoptimized={isUnoptimized(images[index].src)}
             alt={images[index].alt}
             fill
             sizes="(max-width: 768px) 100vw, 600px"

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { getPropertyBySlug } from "@/lib/properties";
 import { createBooking } from "@/lib/lodgify";
+import { getPageSections, str, type Section } from "@/lib/cms";
 
 function stripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -23,9 +24,10 @@ export default async function BookingSuccessPage({
   searchParams: Promise<{ session_id?: string }>;
 }) {
   const { session_id } = await searchParams;
+  const t = (await getPageSections("booking-success")).content ?? {};
 
   if (!session_id) {
-    return <Failure />;
+    return <Failure t={t} />;
   }
 
   let session: Stripe.Checkout.Session;
@@ -33,11 +35,11 @@ export default async function BookingSuccessPage({
     session = await stripeClient().checkout.sessions.retrieve(session_id);
   } catch (error) {
     console.error("Could not retrieve checkout session", error);
-    return <Failure />;
+    return <Failure t={t} />;
   }
 
   if (session.payment_status !== "paid") {
-    return <Failure />;
+    return <Failure t={t} />;
   }
 
   const { propertySlug, checkIn, checkOut, guests } = session.metadata ?? {};
@@ -65,7 +67,7 @@ export default async function BookingSuccessPage({
       <div className="max-w-md text-center">
         <CheckCircle2 size={48} className="mx-auto text-cyan-500" />
         <h1 className="mt-5 font-display text-3xl font-semibold text-ink-900">
-          Booking confirmed
+          {str(t, "heading", "Booking confirmed")}
         </h1>
         <p className="mt-3 text-ink-600">
           {property ? (
@@ -86,37 +88,48 @@ export default async function BookingSuccessPage({
         </p>
         <p className="mt-3 text-sm text-ink-500">
           {bookingHandedToLodgify
-            ? "Your reservation has been created. A confirmation email will follow shortly."
-            : "Our concierge team will follow up by email shortly to confirm the final details of your stay."}
+            ? str(
+                t,
+                "confirmedNote",
+                "Your reservation has been created. A confirmation email will follow shortly.",
+              )
+            : str(
+                t,
+                "pendingNote",
+                "Our concierge team will follow up by email shortly to confirm the final details of your stay.",
+              )}
         </p>
         <Link
           href="/properties"
           className="mt-8 inline-block rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300"
         >
-          Browse more properties
+          {str(t, "buttonLabel", "Browse more properties")}
         </Link>
       </div>
     </main>
   );
 }
 
-function Failure() {
+function Failure({ t }: { t: Section }) {
   return (
     <main className="flex min-h-[70vh] items-center justify-center px-5 py-24">
       <div className="max-w-md text-center">
         <XCircle size={48} className="mx-auto text-ink-300" />
         <h1 className="mt-5 font-display text-3xl font-semibold text-ink-900">
-          We couldn&apos;t confirm this payment
+          {str(t, "failedHeading", "We couldn't confirm this payment")}
         </h1>
         <p className="mt-3 text-ink-600">
-          If you completed a payment, please contact us and we&apos;ll sort
-          it out — you have not been charged twice.
+          {str(
+            t,
+            "failedText",
+            "If you completed a payment, please contact us and we'll sort it out — you have not been charged twice.",
+          )}
         </p>
         <Link
           href="/properties"
           className="mt-8 inline-block rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300"
         >
-          Back to properties
+          {str(t, "failedButtonLabel", "Back to properties")}
         </Link>
       </div>
     </main>

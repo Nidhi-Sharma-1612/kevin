@@ -34,6 +34,7 @@ import PropertyHeroGallery from "@/components/PropertyHeroGallery";
 import PropertyLocationMap from "@/components/PropertyLocationMap";
 import { getAllProperties, getPropertyPolicy, type Amenity } from "@/lib/properties";
 import { fromISODate } from "@/lib/date-utils";
+import { getPageSections, str } from "@/lib/cms";
 
 const AMENITY_ICONS: Record<Amenity["icon"], typeof Wifi> = {
   wifi: Wifi,
@@ -64,7 +65,11 @@ export default async function PropertyDetailPage({
 }) {
   const { slug } = await params;
   const search = await searchParams;
-  const properties = await getAllProperties();
+  const [properties, sections] = await Promise.all([
+    getAllProperties(),
+    getPageSections("properties"),
+  ]);
+  const t = sections.detail ?? {};
   const property = properties.find((p) => p.slug === slug);
 
   if (!property) notFound();
@@ -95,7 +100,7 @@ export default async function PropertyDetailPage({
           href="/properties"
           className="inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-amber-600"
         >
-          <ArrowLeft size={15} /> Back to all properties
+          <ArrowLeft size={15} /> {str(t, "backLabel", "Back to all properties")}
         </Link>
       </div>
 
@@ -148,7 +153,7 @@ export default async function PropertyDetailPage({
                 intended. */}
             <section className="mt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
-                About this apartment
+                {str(t, "aboutHeading", "About this apartment")}
               </h2>
               <div className="mt-3">
                 <ExpandableDescription html={property.descriptionHtml} />
@@ -170,7 +175,7 @@ export default async function PropertyDetailPage({
             {/* Amenities */}
             <section className="mt-10 border-t border-ink-100 pt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
-                What this place offers
+                {str(t, "amenitiesHeading", "What this place offers")}
               </h2>
               <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                 {property.amenities.map((amenity) => {
@@ -198,7 +203,7 @@ export default async function PropertyDetailPage({
                 here to fill the gap. */}
             <section className="mt-10 border-t border-ink-100 pt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
-                Good to know
+                {str(t, "goodToKnowHeading", "Good to know")}
               </h2>
               <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                 <div className="flex items-center gap-3 text-sm text-ink-700">
@@ -227,7 +232,7 @@ export default async function PropertyDetailPage({
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand-100 text-ink-600">
                     <MessageCircleHeart size={16} />
                   </span>
-                  24/7 concierge support
+                  {str(t, "conciergeSupport", "24/7 concierge support")}
                 </div>
               </div>
             </section>
@@ -238,14 +243,18 @@ export default async function PropertyDetailPage({
                 schedule the way the old placeholder text implied. */}
             <section className="mt-10 border-t border-ink-100 pt-8">
               <h2 className="font-display text-xl font-semibold text-ink-800">
-                Cancellation policy
+                {str(t, "cancellationHeading", "Cancellation policy")}
               </h2>
               <div className="mt-5 space-y-3">
                 <div className="flex items-start gap-3 rounded-xl bg-sand-50 p-4 text-sm">
                   <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-500" />
                   <p className="text-ink-700">
                     {policy?.cancellationPolicy ??
-                      "Cancellation terms depend on your dates and rate — your concierge will confirm the exact policy when you book."}
+                      str(
+                        t,
+                        "cancellationFallback",
+                        "Cancellation terms depend on your dates and rate — your concierge will confirm the exact policy when you book.",
+                      )}
                   </p>
                 </div>
                 {policy?.securityDeposit && (
@@ -261,8 +270,11 @@ export default async function PropertyDetailPage({
                   </div>
                 )}
                 <p className="text-xs text-ink-400">
-                  Exact terms are confirmed with your concierge at the time of
-                  booking.
+                  {str(
+                    t,
+                    "cancellationNote",
+                    "Exact terms are confirmed with your concierge at the time of booking.",
+                  )}
                 </p>
               </div>
             </section>
@@ -271,7 +283,7 @@ export default async function PropertyDetailPage({
             <section className="mt-10 border-t border-ink-100 pt-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="font-display text-xl font-semibold text-ink-800">
-                  Where you&apos;ll be
+                  {str(t, "locationHeading", "Where you'll be")}
                 </h2>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${property.lat},${property.lng}`}
@@ -279,7 +291,7 @@ export default async function PropertyDetailPage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 hover:text-amber-500"
                 >
-                  Get directions <ExternalLink size={14} />
+                  {str(t, "directionsLabel", "Get directions")} <ExternalLink size={14} />
                 </a>
               </div>
               <p className="mt-2 text-sm text-ink-500">{property.location}</p>
@@ -295,18 +307,21 @@ export default async function PropertyDetailPage({
               </span>
               <div className="flex-1">
                 <p className="font-display text-base font-semibold text-ink-800">
-                  Managed by La Conciergerie Del Sol
+                  {str(t, "conciergeTitle", "Managed by La Conciergerie Del Sol")}
                 </p>
                 <p className="mt-1 text-sm text-ink-600">
-                  Our concierge team is on hand before, during and after your
-                  stay — questions answered, local recommendations included.
+                  {str(
+                    t,
+                    "conciergeText",
+                    "Our concierge team is on hand before, during and after your stay — questions answered, local recommendations included.",
+                  )}
                 </p>
               </div>
               <Link
                 href="/contact"
                 className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-semibold text-sand-50 transition-colors hover:bg-ink-800"
               >
-                <Mail size={14} /> Contact us
+                <Mail size={14} /> {str(t, "contactLabel", "Contact us")}
               </Link>
             </section>
           </div>
@@ -333,7 +348,7 @@ export default async function PropertyDetailPage({
         <section className="bg-white py-16">
           <div className="mx-auto max-w-7xl px-5 sm:px-8">
             <h2 className="font-display text-2xl font-semibold text-ink-800">
-              You might also like
+              {str(t, "similarHeading", "You might also like")}
             </h2>
             <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
               {similar.map((p) => (

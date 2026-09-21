@@ -27,7 +27,20 @@ function FilterChip({ label }: { label: string }) {
   );
 }
 
-function PropertiesContent({ properties }: { properties: Property[] }) {
+type IntroText = {
+  heading: string;
+  description: string;
+  emptyTitle: string;
+  emptyText: string;
+};
+
+function PropertiesContent({
+  properties,
+  heading,
+  description,
+  emptyTitle,
+  emptyText,
+}: { properties: Property[] } & IntroText) {
   const searchParams = useSearchParams();
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
@@ -74,12 +87,12 @@ function PropertiesContent({ properties }: { properties: Property[] }) {
             available
           </span>
           <h1 className="mt-4 font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
-            Apartments in Torremolinos
+            {heading}
           </h1>
           <p className="mt-3 text-sm text-ink-500">
             {checkIn && checkOut
               ? `Showing stays available for ${formatShortDate(checkIn)} – ${formatShortDate(checkOut)}.`
-              : "Hover a stay to locate it on the map, or explore the map to find your neighborhood."}
+              : description}
           </p>
 
           {hasFilters && (
@@ -106,12 +119,12 @@ function PropertiesContent({ properties }: { properties: Property[] }) {
                 <SearchX size={20} />
               </span>
               <p className="mt-4 font-display text-lg font-semibold text-ink-800">
-                No stays match your search
+                {emptyTitle}
               </p>
               <p className="mt-2 max-w-xs text-sm text-ink-500">
                 {checkIn && checkOut
                   ? "Nothing is free for those dates — try a different date range, neighborhood or guest count."
-                  : "Try a different neighborhood or guest count, or browse everything we have."}
+                  : emptyText}
               </p>
               <Link
                 href="/properties"
@@ -182,12 +195,13 @@ function PropertiesContent({ properties }: { properties: Property[] }) {
 
 export default function PropertiesPageClient({
   properties,
+  ...text
 }: {
   properties: Property[];
-}) {
+} & IntroText) {
   return (
     <Suspense fallback={null}>
-      <PropertiesContent properties={properties} />
+      <PropertiesContent properties={properties} {...text} />
     </Suspense>
   );
 }

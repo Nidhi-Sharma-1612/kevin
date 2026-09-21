@@ -7,6 +7,8 @@ import { Menu, X } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import Logo from "./Logo";
 
+// Hrefs are fixed; the visible labels can be overridden from the admin panel
+// (same order as below).
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/properties", label: "Properties" },
@@ -17,7 +19,18 @@ const NAV_LINKS = [
 // roughly the distance from the top to below the hero's text block.
 const SOLIDIFY_AT = 80;
 
-export default function Header({ initialLanguage }: { initialLanguage: string }) {
+export default function Header({
+  initialLanguage,
+  logoUrl = null,
+  linkLabels = [],
+  ctaLabel = "Book your stay",
+}: {
+  initialLanguage: string;
+  logoUrl?: string | null;
+  linkLabels?: string[];
+  ctaLabel?: string;
+}) {
+  const navLinks = NAV_LINKS.map((link, i) => ({ ...link, label: linkLabels[i] ?? link.label }));
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -50,11 +63,11 @@ export default function Header({ initialLanguage }: { initialLanguage: string })
     >
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8">
         <Link href="/" onClick={() => setOpen(false)}>
-          <Logo light={transparent} />
+          <Logo light={transparent} logoUrl={logoUrl} />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
               <Link
@@ -91,7 +104,7 @@ export default function Header({ initialLanguage }: { initialLanguage: string })
               href="/properties"
               className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300"
             >
-              Book your stay
+              {ctaLabel}
             </Link>
           </div>
 
@@ -111,7 +124,7 @@ export default function Header({ initialLanguage }: { initialLanguage: string })
       {open && (
         <div className="border-t border-ink-900/5 bg-sand-50 px-5 pb-5 md:hidden">
           <nav className="flex flex-col gap-1 pt-3">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const active = isActive(link.href);
               return (
                 <Link
@@ -133,7 +146,7 @@ export default function Header({ initialLanguage }: { initialLanguage: string })
               onClick={() => setOpen(false)}
               className="mt-2 rounded-full bg-amber-400 px-4 py-2.5 text-center text-sm font-semibold text-ink-900"
             >
-              Book your stay
+              {ctaLabel}
             </Link>
           </nav>
         </div>

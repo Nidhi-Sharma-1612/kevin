@@ -21,7 +21,19 @@ import Reveal from "@/components/Reveal";
 import { RevealGroup, RevealItem } from "@/components/RevealGroup";
 import { getAllProperties } from "@/lib/properties";
 import { pickDecorativeImages } from "@/lib/decorative-images";
+import {
+  getCmsFaqs,
+  getPageSections,
+  getSiteSettings,
+  imageSlots,
+  objList,
+  str,
+  strList,
+} from "@/lib/cms";
+import { isUnoptimized } from "@/lib/image-src";
 
+// Icons are fixed in code; the title/text of each row can be overridden from
+// the admin panel (same order as below).
 const AMENITIES = [
   {
     icon: Waves,
@@ -65,13 +77,14 @@ const BENTO_SIZES: Array<"lg" | "md" | "sm"> = [
   "md",
 ];
 
+// Icons are fixed in code; the labels can be overridden from the admin panel.
 const PROMISES = [
   { icon: MessageCircleHeart, title: "Always reachable" },
   { icon: MapPinned, title: "Local expertise" },
   { icon: ShieldCheck, title: "Peace of mind" },
 ];
 
-const TESTIMONIALS = [
+const FALLBACK_TESTIMONIALS = [
   {
     quote:
       "Our balcony overlooked the sea and the concierge team had everything ready before we even landed. Best stay we've had on the Costa del Sol.",
@@ -93,23 +106,71 @@ const TESTIMONIALS = [
 ];
 
 export default async function Home() {
-  const properties = await getAllProperties();
+  const [properties, sections, cmsFaqs, settings] = await Promise.all([
+    getAllProperties(),
+    getPageSections("home"),
+    getCmsFaqs(),
+    getSiteSettings(),
+  ]);
+  const hero = sections.hero ?? {};
+  const welcome = sections.welcome ?? {};
+  const featuredCms = sections.featured ?? {};
+  const comfort = sections.comfort ?? {};
+  const concierge = sections.concierge ?? {};
+  const testimonialsCms = sections.testimonials ?? {};
+  const faqCms = sections.faq ?? {};
+  const cta = sections.cta ?? {};
+
   const featured = properties.slice(0, 6);
   const neighborhoodCount = new Set(properties.map((p) => p.neighborhood)).size;
   const maxGuests = Math.max(1, ...properties.map((p) => p.guests));
   const decorativeImages = pickDecorativeImages(properties);
-  const welcomeGallery = decorativeImages.welcome.map((src, i) => ({
-    src,
-    alt: `Andalusian apartment interior ${i + 1}`,
+  // Every photo slot can be replaced in the admin panel; an empty slot falls
+  // back to the automatic Lodgify pick at the same position.
+  const heroImages = imageSlots(hero, "image", decorativeImages.hero, 3);
+  const welcomeGallery = imageSlots(welcome, "image", decorativeImages.welcome, 5).map(
+    (src, i) => ({ src, alt: `Andalusian apartment interior ${i + 1}` }),
+  );
+  const conciergeGallery = imageSlots(concierge, "image", decorativeImages.concierge, 3).map(
+    (src, i) => ({ src, alt: `Concierge-managed apartment ${i + 1}` }),
+  );
+  const cornerImage = str(welcome, "cornerImage", decorativeImages.poolThumbnail);
+  const comfortImage = str(comfort, "image", decorativeImages.comfortSection);
+  const ctaImage = str(cta, "backgroundImage", decorativeImages.ctaBackground);
+
+  const welcomeParagraphs = strList(welcome, "paragraphs", [
+    "Welcome to Andalusia and to our charming apartments, carefully managed by La Conciergerie del Sol.",
+    "Immerse yourself in the essence of Andalusian living by staying in one of our magnificent properties, located in the heart of this vibrant seaside town. Whether you're looking for a seaside getaway, a cultural stay, or a total immersion in local gastronomy, our dedicated team is here to make your experience unforgettable.",
+  ]);
+  const cmsAmenities = objList(comfort, "items", ["title", "text"], [], AMENITIES.length);
+  const amenities = AMENITIES.map((item, i) => ({
+    icon: item.icon,
+    title: cmsAmenities[i]?.title ?? item.title,
+    text: cmsAmenities[i]?.text ?? item.text,
   }));
-  const conciergeGallery = decorativeImages.concierge.map((src, i) => ({
-    src,
-    alt: `Concierge-managed apartment ${i + 1}`,
-  }));
+  const promiseLabels = strList(concierge, "promises", [], PROMISES.length);
+  const promises = PROMISES.map((item, i) => ({ ...item, title: promiseLabels[i] ?? item.title }));
+  const testimonials = objList(
+    testimonialsCms,
+    "items",
+    ["quote", "name", "detail"],
+    FALLBACK_TESTIMONIALS,
+  );
 
   return (
     <div>
-      <Hero images={decorativeImages.hero} maxGuests={maxGuests} />
+      <Hero
+        images={heroImages}
+        maxGuests={maxGuests}
+        eyebrow={str(hero, "eyebrow", "Torremolinos · Costa del Sol · Spain")}
+        heading={str(hero, "heading", "Book your holidays under the Andalusian sun")}
+        description={str(
+          hero,
+          "description",
+          "Curated apartments with sea views, private pools and a dedicated concierge team — the heart of vibrant, seaside Torremolinos.",
+        )}
+        videoUrl={str(hero, "heroVideo", "")}
+      />
 
       {/* Welcome */}
       <section className="relative overflow-hidden py-20">
@@ -126,32 +187,28 @@ export default async function Home() {
           <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-20">
             <Reveal>
               <p className="text-sm font-semibold tracking-[0.2em] text-cyan-600 uppercase">
-                Welcome
+                {str(welcome, "eyebrow", "Welcome")}
               </p>
               <h2 className="mt-3 font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
-                Welcome to Andalusia!
+                {str(welcome, "heading", "Welcome to Andalusia!")}
               </h2>
               <div className="mt-5 space-y-4 text-ink-500">
-                <p>
-                  Welcome to Andalusia and to our charming apartments,
-                  carefully managed by La Conciergerie del Sol.
-                </p>
-                <p>
-                  Immerse yourself in the essence of Andalusian living by
-                  staying in one of our magnificent properties, located in
-                  the heart of this vibrant seaside town. Whether
-                  you&apos;re looking for a seaside getaway, a cultural
-                  stay, or a total immersion in local gastronomy, our
-                  dedicated team is here to make your experience
-                  unforgettable.
-                </p>
+                {welcomeParagraphs.map((text, i) => (
+                  <p key={i}>{text}</p>
+                ))}
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 {[
-                  { icon: HomeIcon, label: `${properties.length} Apartments` },
-                  { icon: MapPinned, label: `${neighborhoodCount} Neighborhoods` },
-                  { icon: Star, label: "5★ Hospitality" },
+                  {
+                    icon: HomeIcon,
+                    label: `${properties.length} ${str(welcome, "apartmentsLabel", "Apartments")}`,
+                  },
+                  {
+                    icon: MapPinned,
+                    label: `${neighborhoodCount} ${str(welcome, "neighborhoodsLabel", "Neighborhoods")}`,
+                  },
+                  { icon: Star, label: str(welcome, "hospitalityBadge", "5★ Hospitality") },
                 ].map(({ icon: Icon, label }) => (
                   <span
                     key={label}
@@ -167,7 +224,7 @@ export default async function Home() {
                 href="/properties"
                 className="mt-7 inline-flex items-center gap-2 font-semibold text-amber-600 hover:text-amber-500"
               >
-                Discover our properties <ArrowRight size={16} />
+                {str(welcome, "linkLabel", "Discover our properties")} <ArrowRight size={16} />
               </Link>
             </Reveal>
 
@@ -181,7 +238,8 @@ export default async function Home() {
 
                 <div className="absolute -bottom-8 left-0 z-20 hidden h-36 w-28 overflow-hidden rounded-tr-[2.5rem] rounded-bl-[2.5rem] rounded-tl-lg rounded-br-lg border-4 border-sand-50 shadow-soft sm:block lg:h-44 lg:w-36">
                   <Image
-                    src={decorativeImages.poolThumbnail}
+                    src={cornerImage}
+                    unoptimized={isUnoptimized(cornerImage)}
                     alt="Sea-view pool terrace in Torremolinos"
                     fill
                     sizes="180px"
@@ -198,7 +256,7 @@ export default async function Home() {
                       {properties.length}+
                     </span>
                     <span className="block text-[11px] text-ink-500">
-                      Homes across Torremolinos
+                      {str(welcome, "homesCaption", "Homes across Torremolinos")}
                     </span>
                   </span>
                 </div>
@@ -214,17 +272,17 @@ export default async function Home() {
           <Reveal className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-semibold tracking-[0.2em] text-cyan-600 uppercase">
-                Handpicked
+                {str(featuredCms, "eyebrow", "Handpicked")}
               </p>
               <h2 className="mt-3 font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
-                Featured stays
+                {str(featuredCms, "heading", "Featured stays")}
               </h2>
             </div>
             <Link
               href="/properties"
               className="inline-flex items-center gap-2 font-semibold text-amber-600 hover:text-amber-500"
             >
-              View all properties <ArrowRight size={16} />
+              {str(featuredCms, "linkLabel", "View all properties")} <ArrowRight size={16} />
             </Link>
           </Reveal>
 
@@ -256,20 +314,22 @@ export default async function Home() {
             <div className="lg:order-2">
               <Reveal>
                 <p className="text-sm font-semibold tracking-[0.2em] text-cyan-600 uppercase">
-                  Why stay with us
+                  {str(comfort, "eyebrow", "Why stay with us")}
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
-                  Comfort &amp; Convenience
+                  {str(comfort, "heading", "Comfort & Convenience")}
                 </h2>
                 <p className="mt-4 text-ink-500">
-                  Our apartments, carefully selected for their comfort and
-                  privileged location, are designed to make you feel
-                  instantly at home.
+                  {str(
+                    comfort,
+                    "description",
+                    "Our apartments, carefully selected for their comfort and privileged location, are designed to make you feel instantly at home.",
+                  )}
                 </p>
               </Reveal>
 
               <RevealGroup className="mt-8 border-t border-ink-100">
-                {AMENITIES.map(({ icon: Icon, title, text }) => (
+                {amenities.map(({ icon: Icon, title, text }) => (
                   <RevealItem
                     key={title}
                     className="group flex items-start gap-4 border-b border-ink-100 py-5"
@@ -292,7 +352,8 @@ export default async function Home() {
               <div className="relative mx-auto max-w-md lg:mx-0 lg:max-w-none">
                 <div className="relative aspect-[4/5] w-full overflow-hidden rounded-tl-[3rem] rounded-tr-2xl rounded-br-[3rem] rounded-bl-2xl shadow-soft">
                   <Image
-                    src={decorativeImages.comfortSection}
+                    src={comfortImage}
+                    unoptimized={isUnoptimized(comfortImage)}
                     alt="Comfortable, spa-style interior of a La Conciergerie Del Sol apartment"
                     fill
                     sizes="(max-width: 1024px) 100vw, 560px"
@@ -305,10 +366,10 @@ export default async function Home() {
                   </span>
                   <span className="leading-tight">
                     <span className="block font-display text-base font-semibold text-ink-800">
-                      Quality checked
+                      {str(comfort, "badgeTitle", "Quality checked")}
                     </span>
                     <span className="block text-[11px] text-ink-500">
-                      Every stay, every time
+                      {str(comfort, "badgeText", "Every stay, every time")}
                     </span>
                   </span>
                 </div>
@@ -334,22 +395,22 @@ export default async function Home() {
             <div>
               <Reveal>
                 <p className="text-sm font-semibold tracking-[0.2em] text-amber-300 uppercase">
-                  Our promise
+                  {str(concierge, "eyebrow", "Our promise")}
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-semibold text-sand-50 sm:text-4xl">
-                  Concierge Excellence
+                  {str(concierge, "heading", "Concierge Excellence")}
                 </h2>
                 <p className="mt-4 text-ink-200">
-                  As your dedicated concierge, we strive to exceed your
-                  expectations at every stage of your trip. From booking to
-                  arrival, we&apos;re here to answer your questions, provide
-                  local recommendations and ensure your stay goes off
-                  without a hitch.
+                  {str(
+                    concierge,
+                    "description",
+                    "As your dedicated concierge, we strive to exceed your expectations at every stage of your trip. From booking to arrival, we're here to answer your questions, provide local recommendations and ensure your stay goes off without a hitch.",
+                  )}
                 </p>
               </Reveal>
 
               <RevealGroup className="mt-8 flex flex-wrap gap-3">
-                {PROMISES.map(({ icon: Icon, title }) => (
+                {promises.map(({ icon: Icon, title }) => (
                   <RevealItem
                     key={title}
                     className="group flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 py-2 pr-4 pl-2.5 transition-colors duration-300 hover:border-amber-400/40 hover:bg-white/10"
@@ -369,7 +430,7 @@ export default async function Home() {
                   href="/contact"
                   className="mt-8 inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-ink-900 transition-colors hover:bg-amber-300"
                 >
-                  Talk to our concierge team
+                  {str(concierge, "ctaLabel", "Talk to our concierge team")}
                 </Link>
               </Reveal>
             </div>
@@ -386,10 +447,10 @@ export default async function Home() {
                   </span>
                   <span className="leading-tight">
                     <span className="block font-display text-base font-semibold text-ink-800">
-                      5★ Hospitality
+                      {str(concierge, "badgeTitle", "5★ Hospitality")}
                     </span>
                     <span className="block text-[11px] text-ink-500">
-                      Rated by our guests
+                      {str(concierge, "badgeText", "Rated by our guests")}
                     </span>
                   </span>
                 </div>
@@ -404,15 +465,15 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold tracking-[0.2em] text-cyan-600 uppercase">
-              Guest stories
+              {str(testimonialsCms, "eyebrow", "Guest stories")}
             </p>
             <h2 className="mt-3 font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
-              Loved by our guests
+              {str(testimonialsCms, "heading", "Loved by our guests")}
             </h2>
           </Reveal>
 
           <RevealGroup className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {TESTIMONIALS.map(({ quote, name, detail }) => (
+            {testimonials.map(({ quote, name, detail }) => (
               <RevealItem key={name}>
                 <TestimonialCard quote={quote} name={name} detail={detail} />
               </RevealItem>
@@ -426,24 +487,40 @@ export default async function Home() {
         <div className="mx-auto max-w-3xl px-5 sm:px-8">
           <Reveal className="text-center">
             <p className="text-sm font-semibold tracking-[0.2em] text-cyan-600 uppercase">
-              Good to know
+              {str(faqCms, "eyebrow", "Good to know")}
             </p>
             <h2 className="mt-3 font-display text-3xl font-semibold text-ink-800 sm:text-4xl">
-              Frequently asked questions
+              {str(faqCms, "heading", "Frequently asked questions")}
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-ink-500">
-              Can&apos;t find what you&apos;re looking for? Our concierge
-              team is always a message away.
+              {str(
+                faqCms,
+                "description",
+                "Can't find what you're looking for? Our concierge team is always a message away.",
+              )}
             </p>
           </Reveal>
 
           <Reveal delay={0.1} className="mt-10">
-            <FaqAccordion />
+            <FaqAccordion faqs={cmsFaqs} />
           </Reveal>
         </div>
       </section>
 
-      <CtaSection backgroundImage={decorativeImages.ctaBackground} />
+      <CtaSection
+        backgroundImage={ctaImage}
+        eyebrow={str(cta, "eyebrow", "Book direct")}
+        heading={str(cta, "heading", "Ready to feel the Andalusian sun?")}
+        description={str(
+          cta,
+          "description",
+          "Browse our full collection of Torremolinos apartments and find your perfect seaside home.",
+        )}
+        primaryLabel={str(cta, "primaryLabel", "Explore all properties")}
+        secondaryLabel={str(cta, "secondaryLabel", "Talk to our concierge")}
+        phone={settings?.phone || "+34 635 861 443"}
+        email={settings?.email || "Contact@laconciergeriedelsol.com"}
+      />
     </div>
   );
 }

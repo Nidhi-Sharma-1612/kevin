@@ -12,14 +12,30 @@ import ContactMap from "@/components/ContactMap";
 import Reveal from "@/components/Reveal";
 import { RevealGroup, RevealItem } from "@/components/RevealGroup";
 import { getAllProperties } from "@/lib/properties";
+import { getPageSections, getSiteSettings, str } from "@/lib/cms";
 
 export default async function ContactPage() {
-  const properties = await getAllProperties();
+  const [properties, sections, settings] = await Promise.all([
+    getAllProperties(),
+    getPageSections("contact"),
+    getSiteSettings(),
+  ]);
+  const intro = sections.intro ?? {};
+  const mapCms = sections.map ?? {};
+  const nudge = sections.faqNudge ?? {};
+
+  const address = settings?.address || "Torremolinos, Costa del Sol, Spain";
+  const phone = settings?.phone || "+34 635 861 443";
+  const email = settings?.email || "Contact@laconciergeriedelsol.com";
+  const replyNote = settings?.responseTimeNote || "We typically reply within a few hours.";
 
   const trustPills = [
-    { icon: Clock, label: "Replies within a few hours" },
-    { icon: ShieldCheck, label: "Local Torremolinos team" },
-    { icon: MessageCircle, label: `${properties.length}+ apartments managed` },
+    { icon: Clock, label: str(intro, "replyPill", "Replies within a few hours") },
+    { icon: ShieldCheck, label: str(intro, "teamPill", "Local Torremolinos team") },
+    {
+      icon: MessageCircle,
+      label: `${properties.length}+ ${str(intro, "managedPillSuffix", "apartments managed")}`,
+    },
   ];
 
   return (
@@ -36,15 +52,17 @@ export default async function ContactPage() {
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
         <Reveal className="max-w-2xl">
           <p className="text-sm font-semibold tracking-[0.2em] text-cyan-600 uppercase">
-            Get in touch
+            {str(intro, "eyebrow", "Get in touch")}
           </p>
           <h1 className="mt-3 font-display text-4xl font-semibold text-ink-800">
-            We&apos;re here to help plan your stay
+            {str(intro, "heading", "We're here to help plan your stay")}
           </h1>
           <p className="mt-4 text-ink-500">
-            Questions about a property, dates or local recommendations? Our
-            concierge team in Torremolinos replies to every message
-            personally.
+            {str(
+              intro,
+              "description",
+              "Questions about a property, dates or local recommendations? Our concierge team in Torremolinos replies to every message personally.",
+            )}
           </p>
 
           <RevealGroup className="mt-6 flex flex-wrap gap-3">
@@ -68,11 +86,9 @@ export default async function ContactPage() {
               </span>
               <div>
                 <p className="font-display font-semibold text-ink-800">
-                  Address
+                  {str(intro, "addressLabel", "Address")}
                 </p>
-                <p className="mt-1 text-sm text-ink-500">
-                  Torremolinos, Costa del Sol, Spain
-                </p>
+                <p className="mt-1 text-sm text-ink-500">{address}</p>
               </div>
             </div>
 
@@ -82,13 +98,13 @@ export default async function ContactPage() {
               </span>
               <div>
                 <p className="font-display font-semibold text-ink-800">
-                  Phone
+                  {str(intro, "phoneLabel", "Phone")}
                 </p>
                 <a
-                  href="tel:+34635861443"
+                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
                   className="mt-1 block text-sm text-ink-500 hover:text-amber-600"
                 >
-                  +34 635 861 443
+                  {phone}
                 </a>
               </div>
             </div>
@@ -99,13 +115,13 @@ export default async function ContactPage() {
               </span>
               <div>
                 <p className="font-display font-semibold text-ink-800">
-                  Email
+                  {str(intro, "emailLabel", "Email")}
                 </p>
                 <a
-                  href="mailto:Contact@laconciergeriedelsol.com"
+                  href={`mailto:${email}`}
                   className="mt-1 block text-sm text-ink-500 hover:text-amber-600"
                 >
-                  Contact@laconciergeriedelsol.com
+                  {email}
                 </a>
               </div>
             </div>
@@ -173,9 +189,7 @@ export default async function ContactPage() {
               >
                 <Send size={15} /> Send message
               </button>
-              <p className="text-xs text-ink-400">
-                We typically reply within a few hours.
-              </p>
+              <p className="text-xs text-ink-400">{replyNote}</p>
             </form>
           </Reveal>
         </div>
@@ -183,10 +197,14 @@ export default async function ContactPage() {
         {/* Map */}
         <Reveal delay={0.15} className="mt-16">
           <h2 className="font-display text-xl font-semibold text-ink-800">
-            Where we host
+            {str(mapCms, "heading", "Where we host")}
           </h2>
           <p className="mt-2 text-sm text-ink-500">
-            Our apartments are spread across Torremolinos, Costa del Sol.
+            {str(
+              mapCms,
+              "description",
+              "Our apartments are spread across Torremolinos, Costa del Sol.",
+            )}
           </p>
           <div className="mt-5 h-80 w-full overflow-hidden rounded-2xl shadow-soft">
             <ContactMap properties={properties} />
@@ -200,18 +218,21 @@ export default async function ContactPage() {
         >
           <div className="flex-1">
             <p className="font-display text-base font-semibold text-ink-800">
-              Have a quick question?
+              {str(nudge, "heading", "Have a quick question?")}
             </p>
             <p className="mt-1 text-sm text-ink-600">
-              Check-in times, cancellation policy and more — our FAQ covers
-              the essentials.
+              {str(
+                nudge,
+                "text",
+                "Check-in times, cancellation policy and more — our FAQ covers the essentials.",
+              )}
             </p>
           </div>
           <Link
             href="/#faq"
             className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-semibold text-sand-50 transition-colors hover:bg-ink-800"
           >
-            Read the FAQ
+            {str(nudge, "buttonLabel", "Read the FAQ")}
           </Link>
         </Reveal>
       </div>

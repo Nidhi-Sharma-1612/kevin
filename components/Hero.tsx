@@ -4,28 +4,50 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import SearchBar from "./SearchBar";
+import { isUnoptimized } from "@/lib/image-src";
 
 const SLIDE_DURATION = 6000;
 
 export default function Hero({
   images,
   maxGuests,
+  eyebrow,
+  heading,
+  description,
+  videoUrl = "",
 }: {
   images: string[];
   maxGuests: number;
+  eyebrow: string;
+  heading: string;
+  description: string;
+  // Optional background video from the admin panel — when set it replaces
+  // the photo slideshow.
+  videoUrl?: string;
 }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    if (images.length < 2) return;
+    if (videoUrl || images.length < 2) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % images.length);
     }, SLIDE_DURATION);
     return () => clearInterval(id);
-  }, [images.length]);
+  }, [images.length, videoUrl]);
 
   return (
     <section className="relative -mt-18 flex h-screen min-h-[640px] items-center justify-center overflow-hidden">
+      {videoUrl ? (
+        <video
+          key={videoUrl}
+          className="absolute inset-0 h-full w-full object-cover"
+          src={videoUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      ) : (
       <AnimatePresence>
         <motion.div
           key={index}
@@ -41,6 +63,7 @@ export default function Hero({
           {images[index] && (
             <Image
               src={images[index]}
+              unoptimized={isUnoptimized(images[index])}
               alt="Sunlit Andalusian apartment in Torremolinos"
               fill
               priority={index === 0}
@@ -50,6 +73,7 @@ export default function Hero({
           )}
         </motion.div>
       </AnimatePresence>
+      )}
 
       <div className="absolute inset-0 bg-gradient-to-t from-ink-950/70 via-ink-950/25 to-ink-950/20" />
       <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-ink-950/55 to-transparent" />
@@ -61,7 +85,11 @@ export default function Hero({
         }}
       />
 
-      <div className="absolute right-0 bottom-6 left-0 z-20 hidden justify-center gap-2 sm:flex sm:bottom-8">
+      <div
+        className={`absolute right-0 bottom-6 left-0 z-20 justify-center gap-2 sm:bottom-8 ${
+          videoUrl ? "hidden" : "hidden sm:flex"
+        }`}
+      >
         {images.map((_, i) => (
           <button
             key={i}
@@ -86,7 +114,7 @@ export default function Hero({
           transition={{ duration: 0.6 }}
           className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-ink-950/40 px-3 py-1.5 text-xs font-semibold tracking-[0.15em] text-amber-300 uppercase backdrop-blur-sm text-shadow-hero sm:px-4 sm:text-sm sm:tracking-[0.2em]"
         >
-          Torremolinos · Costa del Sol · Spain
+          {eyebrow}
         </motion.p>
 
         <motion.h1
@@ -95,7 +123,7 @@ export default function Hero({
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mt-5 font-display text-3xl leading-tight font-semibold text-sand-50 text-shadow-hero sm:text-6xl"
         >
-          Book your holidays under the Andalusian sun
+          {heading}
         </motion.h1>
 
         <motion.p
@@ -104,8 +132,7 @@ export default function Hero({
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mt-4 max-w-xl text-sm text-sand-50 text-shadow-hero sm:mt-5 sm:text-lg"
         >
-          Curated apartments with sea views, private pools and a dedicated
-          concierge team — the heart of vibrant, seaside Torremolinos.
+          {description}
         </motion.p>
 
         <motion.div

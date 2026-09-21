@@ -4,8 +4,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Phone } from "lucide-react";
+import { isUnoptimized } from "@/lib/image-src";
 
-export default function CtaSection({ backgroundImage }: { backgroundImage: string }) {
+export default function CtaSection({
+  backgroundImage,
+  eyebrow,
+  heading,
+  description,
+  primaryLabel,
+  secondaryLabel,
+  phone,
+  email,
+}: {
+  backgroundImage: string;
+  eyebrow: string;
+  heading: string;
+  description: string;
+  primaryLabel: string;
+  secondaryLabel: string;
+  phone: string;
+  email: string;
+}) {
   return (
     <section className="relative overflow-hidden bg-amber-400 py-20">
       <motion.div
@@ -18,6 +37,7 @@ export default function CtaSection({ backgroundImage }: { backgroundImage: strin
         {backgroundImage && (
           <Image
             src={backgroundImage}
+            unoptimized={isUnoptimized(backgroundImage)}
             alt=""
             fill
             sizes="100vw"
@@ -48,15 +68,12 @@ export default function CtaSection({ backgroundImage }: { backgroundImage: strin
         className="relative mx-auto max-w-3xl px-5 text-center sm:px-8"
       >
         <p className="text-sm font-semibold tracking-[0.2em] text-ink-900/70 uppercase">
-          Book direct
+          {eyebrow}
         </p>
         <h2 className="mt-3 font-display text-3xl font-semibold text-ink-900 sm:text-5xl">
-          Ready to feel the Andalusian sun?
+          {heading}
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-ink-800/80">
-          Browse our full collection of Torremolinos apartments and find
-          your perfect seaside home.
-        </p>
+        <p className="mx-auto mt-4 max-w-xl text-ink-800/80">{description}</p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <motion.div
@@ -68,7 +85,7 @@ export default function CtaSection({ backgroundImage }: { backgroundImage: strin
               href="/properties"
               className="group inline-flex items-center gap-2 rounded-full bg-ink-900 px-7 py-3.5 text-sm font-semibold text-sand-50 shadow-soft transition-colors hover:bg-ink-800"
             >
-              Explore all properties
+              {primaryLabel}
               <ArrowRight
                 size={16}
                 className="transition-transform duration-300 group-hover:translate-x-1"
@@ -85,25 +102,25 @@ export default function CtaSection({ backgroundImage }: { backgroundImage: strin
               href="/contact"
               className="inline-flex items-center gap-2 rounded-full border-2 border-ink-900 px-7 py-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-900 hover:text-sand-50"
             >
-              Talk to our concierge
+              {secondaryLabel}
             </Link>
           </motion.div>
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-ink-900/15 pt-6 text-sm text-ink-900/70">
           <a
-            href="tel:+34635861443"
+            href={`tel:${phone.replace(/[^\d+]/g, "")}`}
             className="flex items-center gap-1.5 transition-colors hover:text-ink-900"
           >
             <Phone size={14} />
-            +34 635 861 443
+            {phone}
           </a>
           <a
-            href="mailto:Contact@laconciergeriedelsol.com"
+            href={`mailto:${email}`}
             className="flex items-center gap-1.5 transition-colors hover:text-ink-900"
           >
             <Mail size={14} />
-            Contact@laconciergeriedelsol.com
+            {email}
           </a>
         </div>
       </motion.div>

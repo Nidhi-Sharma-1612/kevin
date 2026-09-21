@@ -4,6 +4,7 @@ import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { getPageSections, getSiteSettings, str, strList } from "@/lib/cms";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -16,38 +17,45 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const title = "La Conciergerie Del Sol | Torremolinos Vacation Rentals";
-const description =
+const FALLBACK_TITLE = "La Conciergerie Del Sol | Torremolinos Vacation Rentals";
+const FALLBACK_DESCRIPTION =
   "Curated apartments in Torremolinos, Costa del Sol — sea views, private pools and a dedicated concierge team for an unforgettable Andalusian stay.";
 
-export const metadata: Metadata = {
-  title,
-  description,
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const [settings, global] = await Promise.all([getSiteSettings(), getPageSections("global")]);
+  const seo = global.seo ?? {};
+  const title = str(seo, "title", FALLBACK_TITLE);
+  const description = str(seo, "description", FALLBACK_DESCRIPTION);
+
+  return {
     title,
     description,
-    type: "website",
-    locale: "en_US",
-    siteName: "La Conciergerie Del Sol",
-    images: ["/icon.png"],
-  },
-  twitter: {
-    card: "summary",
-    title,
-    description,
-    images: ["/icon.png"],
-  },
-  // Once our own widget translates the page, `<html lang>` below reflects
-  // that — which then looks to Chrome like a page in French/Spanish being
-  // viewed by an English-browser user, and it offers its own native
-  // translate prompt on top of ours. This is the documented way to tell
-  // Google specifically (Chrome's prompt and Search's "Translate this
-  // page") not to do that, without affecting our own explicitly-invoked
-  // widget, which isn't driven by this heuristic at all.
-  other: {
-    google: "notranslate",
-  },
-};
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: "en_US",
+      siteName: settings?.siteName || "La Conciergerie Del Sol",
+      images: ["/icon.png"],
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: ["/icon.png"],
+    },
+    // Once our own widget translates the page, `<html lang>` below reflects
+    // that — which then looks to Chrome like a page in French/Spanish being
+    // viewed by an English-browser user, and it offers its own native
+    // translate prompt on top of ours. This is the documented way to tell
+    // Google specifically (Chrome's prompt and Search's "Translate this
+    // page") not to do that, without affecting our own explicitly-invoked
+    // widget, which isn't driven by this heuristic at all.
+    other: {
+      google: "notranslate",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -63,13 +71,21 @@ export default async function RootLayout({
   const googtrans = cookieStore.get("googtrans")?.value ?? "";
   const initialLanguage = googtrans.split("/").filter(Boolean)[1] ?? "en";
 
+  const [settings, global] = await Promise.all([getSiteSettings(), getPageSections("global")]);
+  const navbar = global.navbar ?? {};
+
   return (
     <html lang={initialLanguage}>
       <body className={`${fraunces.variable} ${inter.variable} antialiased`}>
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <Header initialLanguage={initialLanguage} />
+        <Header
+          initialLanguage={initialLanguage}
+          logoUrl={settings?.logoUrl ?? null}
+          linkLabels={strList(navbar, "links", [], 3)}
+          ctaLabel={str(navbar, "ctaLabel", "Book your stay")}
+        />
         <main id="main-content" className="pt-18">
           {children}
         </main>
