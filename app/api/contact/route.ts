@@ -1,36 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-import { getSiteSettings } from "@/lib/cms";
-
-const FALLBACK_TO_EMAIL = "Contact@laconciergeriedelsol.com";
-
-// Distinct from a real SMTP failure (auth rejected, host unreachable,
-// etc.) — this means the deployment itself is missing an env var, which
-// `.env.local` being gitignored makes easy to forget when setting up a new
-// hosting environment. Worth telling the guest something more useful than
-// a generic failure for this case (see the catch block below).
-class MissingConfigError extends Error {}
-
-function smtpTransport() {
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD;
-  if (!host || !port || !user || !pass) {
-    throw new MissingConfigError(
-      "SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASSWORD must all be set"
-    );
-  }
-  return nodemailer.createTransport({
-    host,
-    port: Number(port),
-    // 465 is SMTP-over-TLS from the start; every other port (587, 25, …)
-    // starts plain and upgrades via STARTTLS, which Nodemailer handles on
-    // its own when `secure` is false.
-    secure: Number(port) === 465,
-    auth: { user, pass },
-  });
-}
+import {
+  conciergeEmail,
+  MissingConfigError,
+  senderEmail,
+  smtpTransport,
+} from "@/lib/mailer";
 
 function escapeHtml(value: string): string {
   return value
@@ -67,12 +41,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Same recipient the page itself displays (settings.email from the CMS,
-  // falling back to the same default) — one source of truth for "where do
-  // enquiries go," not a separately hardcoded address that could drift.
-  const settings = await getSiteSettings().catch(() => null);
-  const toEmail = settings?.email || FALLBACK_TO_EMAIL;
-  const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const toEmail = await conciergeEmail();
+  const fromEmail = senderEmail();
 
   const lines = [
     `Name: ${name}`,

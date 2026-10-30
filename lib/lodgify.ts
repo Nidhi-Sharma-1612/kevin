@@ -2,7 +2,8 @@ import "server-only";
 
 import { fromISODate, toISODate } from "@/lib/date-utils";
 
-const LODGIFY_BASE_URL = "https://api.lodgify.com/v2";
+const LODGIFY_API_ORIGIN = "https://api.lodgify.com";
+const LODGIFY_BASE_URL = `${LODGIFY_API_ORIGIN}/v2`;
 
 // Lodgify's error responses are JSON with a human-readable `message` (e.g.
 // "The minimum stay for this rental is 3 days", "The house is already
@@ -389,42 +390,66 @@ export async function findPolicyInfo(
 
 export type LodgifyBookingRequest = {
   lodgifyId: string;
+  roomTypeId: string;
   from: string;
   to: string;
   guests: number;
   guestName: string;
   guestEmail: string;
+  // Stored on the booking as an internal comment — the create endpoint has
+  // no field for an amount already paid, so the Stripe payment is otherwise
+  // invisible from Lodgify's side.
+  paymentNote: string;
 };
 
-// STILL UNVERIFIED — confirmed broken, not just unconfirmed: a live test
-// (2026-09-17) got 405 Method Not Allowed with `allow: GET` on this exact
-// path, meaning /v2/reservations/bookings is read-only and this is not the
-// real booking-creation endpoint. The correct endpoint/payload shape has
-// deliberately not been guessed further by trial and error, since a
-// "successful" POST against the live account could create a real
-// reservation and block real calendar dates. Until this is fixed, every
-// call below will throw and the booking/success page's existing fallback
-// (`bookingHandedToLodgify = false`, "concierge team will follow up by
-// email") is what guests actually see — find the right endpoint from
-// Lodgify's docs/support before relying on this.
-export async function createBooking(request: LodgifyBookingRequest) {
-  const res = await fetch(`${LODGIFY_BASE_URL}/reservations/bookings`, {
+// Booking creation only exists on v1 — /v2/reservations/bookings is
+// read-only (405, `allow: GET`). Payload matches Lodgify's published
+// CreateBookingDto. `total` is deliberately omitted so Lodgify builds its
+// own quote breakdown. Returns the new booking's id.
+export async function createBooking(
+  request: LodgifyBookingRequest
+): Promise<number> {
+  const path = "/v1/reservation/booking";
+  const [firstName, ...lastName] = request.guestName.trim().split(/\s+/);
+  const res = await fetch(`${LODGIFY_API_ORIGIN}${path}`, {
     method: "POST",
     headers: {
       "X-ApiKey": apiKey(),
       "Content-Type": "application/json",
+      Accept: "application/json",
       "Accept-Language": "en",
     },
     body: JSON.stringify({
-      property_id: request.lodgifyId,
+      property_id: Number(request.lodgifyId),
       arrival: request.from,
       departure: request.to,
-      guest_breakdown: { adults: request.guests },
-      guest: { name: request.guestName, email: request.guestEmail },
+      status: "Booked",
+      source_text: "Direct website",
+      rooms: [
+        {
+          room_type_id: Number(request.roomTypeId),
+          guest_breakdown: { adults: request.guests },
+        },
+      ],
+      guest: {
+        guest_name: {
+          first_name: firstName,
+          last_name: lastName.join(" "),
+        },
+        email: request.guestEmail || undefined,
+      },
+      messages: [
+        {
+          type: "Comment",
+          subject: "Direct website payment",
+          message: request.paymentNote,
+          send_notification: false,
+        },
+      ],
     }),
   });
   if (!res.ok) {
-    throw new Error(`Lodgify booking creation failed (${res.status})`);
+    await throwForResponse(res, path);
   }
-  return res.json();
+  return res.json() as Promise<number>;
 }

@@ -154,16 +154,13 @@ Next's fetch cache to stay well under Lodgify's rate limit):**
   fee names come through in whatever language the owner set them in (seen
   in French) regardless of the `Accept-Language` header, so exact-string
   fee matching (e.g. "is this the cleaning fee") is best-effort.
-  **`createBooking` is still unverified and confirmed broken as written** —
-  a live test got `405 Method Not Allowed` on `/v2/reservations/bookings`
-  POST, meaning that's not the real booking-creation endpoint. This was
-  deliberately not fixed by further trial and error, since a "successful"
-  guess against the live account risks creating a real reservation and
-  blocking real calendar dates — find the correct endpoint from Lodgify
-  support/docs before relying on it. Until then, every post-payment
-  `createBooking` call fails safely and guests see "our concierge team will
-  follow up by email" on `/booking/success` instead of an instant
-  Lodgify-side confirmation.
+  `createBooking` uses `POST /v1/reservation/booking` (`/v2/reservations/bookings`
+  is read-only), built from Lodgify's published `CreateBookingDto`. The
+  returned id is saved on the Stripe session so reloading `/booking/success`
+  can't create a second reservation. If creation fails, the concierge inbox
+  gets a one-time alert email and the guest sees "our concierge team will
+  follow up by email". The endpoint has no field for an amount already paid,
+  so the Stripe payment is recorded as a comment on the booking.
 - **Stripe** — `/api/checkout` creates a hosted Stripe Checkout Session
   (`mode: "payment"`); the server always re-derives the charged total from
   the live Lodgify quote, never trusting a client-supplied amount. Only a
@@ -187,8 +184,6 @@ Next's fetch cache to stay well under Lodgify's rate limit):**
 
 ## Known limitations / next steps
 
-- **`createBooking` endpoint is wrong** (see above) — the highest-priority
-  fix, since it silently no-ops today
 - **Stripe webhook** — add one (and verify its signature) if a webhook
   signing secret becomes available, as a more reliable alternative to the
   redirect-based confirmation described above
