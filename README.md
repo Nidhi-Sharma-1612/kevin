@@ -159,8 +159,9 @@ Next's fetch cache to stay well under Lodgify's rate limit):**
   returned id is saved on the Stripe session so reloading `/booking/success`
   can't create a second reservation. If creation fails, the concierge inbox
   gets a one-time alert email and the guest sees "our concierge team will
-  follow up by email". The endpoint has no field for an amount already paid,
-  so the Stripe payment is recorded as a comment on the booking.
+  follow up by email". Lodgify has no working way to record an outside
+  payment (`total_paid` is ignored on update), so the Stripe payment goes in
+  the booking's admin note, and bookings show the full amount as due.
 - **Stripe** — `/api/checkout` creates a hosted Stripe Checkout Session
   (`mode: "payment"`); the server always re-derives the charged total from
   the live Lodgify quote, never trusting a client-supplied amount. Only a

@@ -396,16 +396,15 @@ export type LodgifyBookingRequest = {
   guests: number;
   guestName: string;
   guestEmail: string;
-  // Stored on the booking as an internal comment — the create endpoint has
-  // no field for an amount already paid, so the Stripe payment is otherwise
-  // invisible from Lodgify's side.
-  paymentNote: string;
+  total: number;
+  currency: string;
 };
 
 // Booking creation only exists on v1 — /v2/reservations/bookings is
 // read-only (405, `allow: GET`). Payload matches Lodgify's published
-// CreateBookingDto. `total` is deliberately omitted so Lodgify builds its
-// own quote breakdown. Returns the new booking's id.
+// CreateBookingDto. `total` must be sent: despite the docs saying null lets
+// Lodgify calculate the quote, a live test (2026-10-30) left the booking at
+// 0 with no breakdown. Returns the new booking's id.
 export async function createBooking(
   request: LodgifyBookingRequest
 ): Promise<number> {
@@ -425,6 +424,8 @@ export async function createBooking(
       departure: request.to,
       status: "Booked",
       source_text: "Direct website",
+      total: request.total,
+      currency_code: request.currency,
       rooms: [
         {
           room_type_id: Number(request.roomTypeId),
@@ -438,18 +439,31 @@ export async function createBooking(
         },
         email: request.guestEmail || undefined,
       },
-      messages: [
-        {
-          type: "Comment",
-          subject: "Direct website payment",
-          message: request.paymentNote,
-          send_notification: false,
-        },
-      ],
     }),
   });
   if (!res.ok) {
     await throwForResponse(res, path);
   }
   return res.json() as Promise<number>;
+}
+
+// Lodgify has no working way to record a payment taken elsewhere — a live
+// test (2026-10-30) showed `total_paid` is silently ignored on update, and
+// `messages` sent at creation never appear in the thread. The admin note is
+// the one field that sticks, so that's where the Stripe payment goes;
+// bookings still show the full amount as due in Lodgify.
+export async function setBookingNote(bookingId: number, note: string) {
+  const path = `/v1/reservation/booking/${bookingId}`;
+  const res = await fetch(`${LODGIFY_API_ORIGIN}${path}`, {
+    method: "PUT",
+    headers: {
+      "X-ApiKey": apiKey(),
+      "Content-Type": "application/json",
+      "Accept-Language": "en",
+    },
+    body: JSON.stringify({ note }),
+  });
+  if (!res.ok) {
+    await throwForResponse(res, path);
+  }
 }

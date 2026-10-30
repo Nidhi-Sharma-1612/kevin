@@ -2,7 +2,7 @@ import Link from "next/link";
 import Stripe from "stripe";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { getPropertyBySlug } from "@/lib/properties";
-import { createBooking } from "@/lib/lodgify";
+import { createBooking, setBookingNote } from "@/lib/lodgify";
 import { sendBookingFailureAlert } from "@/lib/mailer";
 import { getPageSections, str, type Section } from "@/lib/cms";
 
@@ -108,12 +108,17 @@ export default async function BookingSuccessPage({
         guests: Number(guests),
         guestName: session.customer_details?.name ?? "Guest",
         guestEmail: session.customer_details?.email ?? "",
-        paymentNote: `${amountPaid} paid by card via Stripe (${session.id}).`,
+        total: (session.amount_total ?? 0) / 100,
+        currency: (session.currency ?? "eur").toUpperCase(),
       });
       bookingHandedToLodgify = true;
       await saveSessionMetadata(session.id, {
         lodgifyBookingId: String(bookingId),
       });
+      await setBookingNote(
+        bookingId,
+        `${amountPaid} paid by card via Stripe (${session.id}).`,
+      );
     } catch (error) {
       console.error("Lodgify booking creation failed after payment", error);
       if (!bookingHandedToLodgify) {
