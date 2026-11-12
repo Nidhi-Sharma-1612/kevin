@@ -4,6 +4,7 @@ import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { InstagramIcon } from "./InstagramIcon";
 import Logo from "./Logo";
 import { getPageSections, getSiteSettings, str, strList } from "@/lib/cms";
+import { partnerPath } from "@/lib/partner-pages";
 
 // Hrefs are fixed; the visible labels can be overridden from the admin panel
 // (same order as below).
@@ -15,15 +16,20 @@ const EXPLORE_LINKS = [
 
 const NEIGHBORHOODS = ["Santa Clara", "La Nogalera", "Torre La Roca", "City Centre"];
 
-export default async function Footer() {
+export default async function Footer({ language }: { language: string }) {
   const [settings, global] = await Promise.all([getSiteSettings(), getPageSections("global")]);
   const footer = global.footer ?? {};
 
   const exploreLabels = strList(footer, "exploreLinks", [], EXPLORE_LINKS.length);
-  const exploreLinks = EXPLORE_LINKS.map((link, i) => ({
-    ...link,
-    label: exploreLabels[i] ?? link.label,
-  }));
+  // Appended after the admin-editable links so the admin panel's existing
+  // 3-label list still lines up.
+  const exploreLinks = [
+    ...EXPLORE_LINKS.map((link, i) => ({
+      ...link,
+      label: exploreLabels[i] ?? link.label,
+    })),
+    { href: partnerPath(language), label: "Partner agencies" },
+  ];
   const neighborhoods = strList(footer, "neighborhoods", NEIGHBORHOODS);
 
   const tagline =

@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Languages, Loader2 } from "lucide-react";
+import { isPartnerPath, partnerPath } from "@/lib/partner-pages";
 
 type TranslateElementOptions = {
   pageLanguage: string;
@@ -176,6 +177,13 @@ function selectLanguage(code: string) {
   // the original English markup alone.
   if (code !== "en") {
     document.cookie = `googtrans=/en/${code}; path=/`;
+  }
+  // The partner-agencies page isn't machine-translated: each language is
+  // its own page, so switching means going to the matching one.
+  const { pathname } = window.location;
+  if (isPartnerPath(pathname) && partnerPath(code) !== pathname) {
+    window.location.assign(partnerPath(code));
+    return;
   }
   window.location.reload();
 }

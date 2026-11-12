@@ -91,6 +91,13 @@ lib/
   with "Get directions", similar-properties, and a booking widget. On mobile the
   widget renders inline in the page flow (not just a sidebar), and the
   fixed bottom bar's "Book now" scrolls to it.
+- **Partner agencies page** — a page for real estate agencies, in three
+  hand-translated versions supplied by the client: `/fr/agences-partenaires`,
+  `/agencias-colaboradoras` (Spanish) and `/en/partner-agencies`. Copy lives
+  in `lib/partner-content.ts`. These pages are marked `notranslate` so Google
+  Translate leaves them alone; the language switcher sends visitors to the
+  matching page instead. The contact form submits nothing — it opens
+  WhatsApp with a drafted message, on a different number per language.
 - **Responsive** — audited at mobile (375px), tablet portrait/landscape
   (768–1024px), and laptop+ (1280px+) breakpoints.
 

@@ -89,7 +89,7 @@ export default async function RootLayout({
         <main id="main-content" className="pt-18">
           {children}
         </main>
-        <Footer />
+        <Footer language={initialLanguage} />
       </body>
     </html>
   );

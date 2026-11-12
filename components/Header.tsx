@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import Logo from "./Logo";
+import { isPartnerPath, partnerPath } from "@/lib/partner-pages";
 
 // Hrefs are fixed; the visible labels can be overridden from the admin panel
 // (same order as below).
@@ -14,6 +15,8 @@ const NAV_LINKS = [
   { href: "/properties", label: "Properties" },
   { href: "/contact", label: "Contact" },
 ];
+
+const PARTNER_LINK_LABEL = "Partner agencies";
 
 // How far (px) to scroll on the home page before the navbar solidifies —
 // roughly the distance from the top to below the hero's text block.
@@ -30,7 +33,12 @@ export default function Header({
   linkLabels?: string[];
   ctaLabel?: string;
 }) {
-  const navLinks = NAV_LINKS.map((link, i) => ({ ...link, label: linkLabels[i] ?? link.label }));
+  // The partner page has its own hand-translated version per language, so
+  // link straight to the one matching the visitor's current language.
+  const navLinks = [
+    ...NAV_LINKS.map((link, i) => ({ ...link, label: linkLabels[i] ?? link.label })),
+    { href: partnerPath(initialLanguage), label: PARTNER_LINK_LABEL },
+  ];
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -39,6 +47,7 @@ export default function Header({
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
+    if (isPartnerPath(href)) return isPartnerPath(pathname);
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
@@ -66,14 +75,16 @@ export default function Header({
           <Logo light={transparent} logoUrl={logoUrl} />
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Full nav only from lg up: with four links plus the language
+            switcher and CTA, it doesn't fit on tablet widths. */}
+        <nav className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative py-1 text-sm font-medium transition-colors duration-300 ${
+                className={`relative py-1 text-sm font-medium whitespace-nowrap transition-colors duration-300 ${
                   active
                     ? transparent
                       ? "text-amber-300"
@@ -99,7 +110,7 @@ export default function Header({
         <div className="flex items-center gap-3">
           <LanguageSwitcher initialLanguage={initialLanguage} />
 
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <Link
               href="/properties"
               className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-ink-900 shadow-soft transition-colors hover:bg-amber-300"
@@ -111,7 +122,7 @@ export default function Header({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className={`inline-flex items-center justify-center rounded-full p-2 transition-colors duration-300 md:hidden ${
+            className={`inline-flex items-center justify-center rounded-full p-2 transition-colors duration-300 lg:hidden ${
               transparent ? "text-white" : "text-ink-700"
             }`}
             aria-label={open ? "Close menu" : "Open menu"}
@@ -122,7 +133,7 @@ export default function Header({
       </div>
 
       {open && (
-        <div className="border-t border-ink-900/5 bg-sand-50 px-5 pb-5 md:hidden">
+        <div className="border-t border-ink-900/5 bg-sand-50 px-5 pb-5 lg:hidden">
           <nav className="flex flex-col gap-1 pt-3">
             {navLinks.map((link) => {
               const active = isActive(link.href);
