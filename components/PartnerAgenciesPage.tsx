@@ -13,12 +13,14 @@ import {
   Users,
 } from "lucide-react";
 import FaqAccordion from "@/components/FaqAccordion";
-import PartnerContactForm from "@/components/PartnerContactForm";
+import PartnerContactForm, { type PartnerFormText } from "@/components/PartnerContactForm";
 import PartnerWhatsAppBar from "@/components/PartnerWhatsAppBar";
 import Reveal from "@/components/Reveal";
 import { RevealGroup, RevealItem } from "@/components/RevealGroup";
 import TestimonialCard from "@/components/TestimonialCard";
 import { getSiteSettings } from "@/lib/cms";
+import { isUnoptimized } from "@/lib/image-src";
+import { getPartnerContent, getPartnerSeo } from "@/lib/partner-cms";
 import { PARTNER_ADDRESS, PARTNER_CONTENT } from "@/lib/partner-content";
 import {
   PARTNER_PATHS,
@@ -29,28 +31,28 @@ import {
 
 const FORM_ANCHOR = "partner-form";
 
-export function partnerMetadata(lang: PartnerLang): Metadata {
-  const { meta } = PARTNER_CONTENT[lang];
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lcdsol.com";
-  const url = (path: string) => new URL(path, siteUrl).toString();
+export async function partnerMetadata(lang: PartnerLang): Promise<Metadata> {
+  const { locale } = PARTNER_CONTENT[lang].meta;
+  const { title, description } = await getPartnerSeo(lang);
 
+  // Paths resolve against the root layout's metadataBase (the live site).
   return {
-    title: meta.title,
-    description: meta.description,
+    title,
+    description,
     alternates: {
-      canonical: url(PARTNER_PATHS[lang]),
+      canonical: PARTNER_PATHS[lang],
       languages: {
-        fr: url(PARTNER_PATHS.fr),
-        es: url(PARTNER_PATHS.es),
-        en: url(PARTNER_PATHS.en),
+        fr: PARTNER_PATHS.fr,
+        es: PARTNER_PATHS.es,
+        en: PARTNER_PATHS.en,
       },
     },
     openGraph: {
-      title: meta.title,
-      description: meta.description,
+      title,
+      description,
       type: "website",
-      locale: meta.locale,
-      url: url(PARTNER_PATHS[lang]),
+      locale,
+      url: PARTNER_PATHS[lang],
       images: ["/partners/terraza-vista-mar.jpg"],
     },
   };
@@ -156,8 +158,10 @@ function PhoneList({ lang, idPrefix }: { lang: PartnerLang; idPrefix: string }) 
 }
 
 export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang }) {
-  const c = PARTNER_CONTENT[lang];
-  const settings = await getSiteSettings();
+  const [{ content: c, images }, settings] = await Promise.all([
+    getPartnerContent(lang),
+    getSiteSettings(),
+  ]);
   const email = settings?.email || "Contact@laconciergeriedelsol.com";
   const whatsapp = PARTNER_WHATSAPP[lang];
 
@@ -169,13 +173,23 @@ export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang 
   ];
 
   const apartCards = [
-    { image: "/partners/capteur-bruit.jpg", ...c.apart.care },
-    { image: "/partners/menage-chambre.jpg", ...c.apart.cleaning },
-    { image: "/partners/jacuzzi-terrasse.jpg", ...c.apart.marketing },
-    { image: "/partners/cadeau-bienvenue.jpg", ...c.apart.welcome },
+    { image: images.apart[0], ...c.apart.care },
+    { image: images.apart[1], ...c.apart.cleaning },
+    { image: images.apart[2], ...c.apart.marketing },
+    { image: images.apart[3], ...c.apart.welcome },
     { image: null, imageAlt: "", ...c.apart.pricing },
-    { image: "/partners/bureau-torremolinos.jpg", ...c.apart.team },
+    { image: images.apart[4], ...c.apart.team },
   ];
+
+  const formText: PartnerFormText = {
+    heading: c.form.heading,
+    options: c.form.options,
+    nameLabel: c.form.nameLabel,
+    agencyLabel: c.form.agencyLabel,
+    messageLabel: c.form.messageLabel,
+    submit: c.form.submit,
+    fine: c.form.fine,
+  };
 
   return (
     // The client supplied this copy already translated, so Google Translate
@@ -252,10 +266,11 @@ export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang 
           <Reveal delay={0.1}>
             <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-tl-[3rem] rounded-tr-2xl rounded-br-[3rem] rounded-bl-2xl shadow-soft lg:max-w-none">
               <Image
-                src="/partners/terraza-vista-mar.jpg"
+                src={images.hero}
                 alt={c.hero.imageAlt}
                 fill
                 priority
+                unoptimized={isUnoptimized(images.hero)}
                 sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
@@ -270,9 +285,10 @@ export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang 
           <Reveal className="order-last lg:order-first">
             <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-2xl shadow-soft lg:max-w-none">
               <Image
-                src="/partners/salon-vista-mar.jpg"
+                src={images.why}
                 alt={c.why.imageAlt}
                 fill
+                unoptimized={isUnoptimized(images.why)}
                 sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
@@ -385,6 +401,7 @@ export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang 
                       src={card.image}
                       alt={card.imageAlt}
                       fill
+                      unoptimized={isUnoptimized(card.image)}
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="object-cover"
                     />
@@ -480,7 +497,7 @@ export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang 
             </div>
           </Reveal>
           <Reveal delay={0.1} className="mt-8">
-            <PartnerContactForm lang={lang} />
+            <PartnerContactForm lang={lang} text={formText} />
           </Reveal>
         </div>
       </section>
@@ -543,7 +560,7 @@ export default async function PartnerAgenciesPage({ lang }: { lang: PartnerLang 
         </Reveal>
       </section>
 
-      <PartnerWhatsAppBar lang={lang} />
+      <PartnerWhatsAppBar lang={lang} label={c.stickyLabel} message={c.talkMessage} />
     </div>
   );
 }

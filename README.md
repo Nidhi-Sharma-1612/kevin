@@ -93,8 +93,11 @@ lib/
   fixed bottom bar's "Book now" scrolls to it.
 - **Partner agencies page** — a page for real estate agencies, in three
   hand-translated versions supplied by the client: `/fr/agences-partenaires`,
-  `/agencias-colaboradoras` (Spanish) and `/en/partner-agencies`. Copy lives
-  in `lib/partner-content.ts`. These pages are marked `notranslate` so Google
+  `/agencias-colaboradoras` (Spanish) and `/en/partner-agencies`. Copy is
+  editable in the admin panel as the pages `partners-fr`, `partners-es` and
+  `partners-en` (`lib/partner-cms.ts`), falling back field by field to the
+  built-in copy in `lib/partner-content.ts`. WhatsApp numbers and the address
+  stay in code. These pages are marked `notranslate` so Google
   Translate leaves them alone; the language switcher sends visitors to the
   matching page instead. The contact form submits nothing — it opens
   WhatsApp with a drafted message, on a different number per language.

@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import { Check, MessageCircle } from "lucide-react";
-import { PARTNER_CONTENT } from "@/lib/partner-content";
+import { PARTNER_CONTENT, type PartnerContent } from "@/lib/partner-content";
 import { PARTNER_WHATSAPP, whatsappLink, type PartnerLang } from "@/lib/partner-pages";
+
+// The admin-editable form copy. The greeting and "interested in" wording of
+// the drafted message stay in code (functions can't cross to the client).
+export type PartnerFormText = Pick<
+  PartnerContent["form"],
+  "heading" | "options" | "nameLabel" | "agencyLabel" | "messageLabel" | "submit" | "fine"
+>;
 
 // Nothing is submitted to the server: the form only drafts a WhatsApp
 // message from what was ticked and typed, as the client's brief specifies
 // ("aucune donnée n'est enregistrée sur cette page").
-export default function PartnerContactForm({ lang }: { lang: PartnerLang }) {
-  const t = PARTNER_CONTENT[lang].form;
+export default function PartnerContactForm({
+  lang,
+  text,
+}: {
+  lang: PartnerLang;
+  text: PartnerFormText;
+}) {
+  const t = { ...PARTNER_CONTENT[lang].form, ...text };
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [agency, setAgency] = useState("");

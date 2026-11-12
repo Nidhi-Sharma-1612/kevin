@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
-import { PARTNER_CONTENT } from "@/lib/partner-content";
 import { PARTNER_WHATSAPP, whatsappLink, type PartnerLang } from "@/lib/partner-pages";
 
 // Mobile-only shortcut to WhatsApp, held back until the visitor has
 // scrolled past most of the hero so it doesn't cover the hero's own CTAs.
-export default function PartnerWhatsAppBar({ lang }: { lang: PartnerLang }) {
-  const content = PARTNER_CONTENT[lang];
+export default function PartnerWhatsAppBar({
+  lang,
+  label,
+  message,
+}: {
+  lang: PartnerLang;
+  label: string;
+  message: string;
+}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -22,7 +28,7 @@ export default function PartnerWhatsAppBar({ lang }: { lang: PartnerLang }) {
 
   return (
     <a
-      href={whatsappLink(PARTNER_WHATSAPP[lang], content.talkMessage)}
+      href={whatsappLink(PARTNER_WHATSAPP[lang], message)}
       target="_blank"
       rel="noopener"
       aria-hidden={!visible}
@@ -32,7 +38,7 @@ export default function PartnerWhatsAppBar({ lang }: { lang: PartnerLang }) {
       }`}
     >
       <MessageCircle size={18} />
-      {content.stickyLabel}
+      {label}
     </a>
   );
 }

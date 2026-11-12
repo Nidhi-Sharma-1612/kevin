@@ -17,6 +17,8 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const LIVE_SITE_URL = "https://lcdsol.com";
+
 const FALLBACK_TITLE = "La Conciergerie Del Sol | Torremolinos Vacation Rentals";
 const FALLBACK_DESCRIPTION =
   "Curated apartments in Torremolinos, Costa del Sol — sea views, private pools and a dedicated concierge team for an unforgettable Andalusian stay.";
@@ -28,6 +30,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = str(seo, "description", FALLBACK_DESCRIPTION);
 
   return {
+    // Resolves relative URLs in metadata (og:image, canonical, hreflang) to
+    // the live site rather than localhost.
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || LIVE_SITE_URL),
     title,
     description,
     openGraph: {
